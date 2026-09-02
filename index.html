@@ -23,16 +23,19 @@ body[data-theme="light"]{
   --bg:#f7f4ec; --bg2:#ffffff; --fg:#2c2a26; --muted:#8f897b;
   --line:#e6e0d0; --accent:#a05a2c; --accent-soft:rgba(160,90,44,.10);
   --mark:rgba(232,168,66,.45); --shadow:rgba(60,50,20,.10);
+  --stripe:rgba(0,0,0,.10);
 }
 body[data-theme="sepia"]{
   --bg:#efe4cd; --bg2:#f8efdd; --fg:#4a3c28; --muted:#a08d6b;
   --line:#dccba6; --accent:#8a5a2b; --accent-soft:rgba(138,90,43,.12);
   --mark:rgba(214,150,60,.5); --shadow:rgba(90,60,20,.14);
+  --stripe:rgba(0,0,0,.10);
 }
 body[data-theme="dark"]{
   --bg:#17181c; --bg2:#202228; --fg:#c9ccd4; --muted:#7c818e;
   --line:#2d3038; --accent:#c9a05c; --accent-soft:rgba(201,160,92,.14);
   --mark:rgba(201,160,92,.4); --shadow:rgba(0,0,0,.5);
+  --stripe:rgba(255,255,255,.10);
 }
 *{ box-sizing:border-box; margin:0; padding:0; }
 html,body{ height:100%; }
@@ -105,9 +108,15 @@ input,select,textarea{ font-family:inherit; color:inherit; }
   text-indent:2em;
   border-radius:4px; transition:background .2s;
 }
-#content p.has-note{ box-shadow:inset 3px 0 0 var(--accent); }
 #content p.flash{ background:var(--mark); }
 mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
+/* 段落末尾笔记徽章（带圈数字 ①-⑳） */
+.para-badge{
+  color:var(--accent); cursor:pointer; user-select:none;
+  margin-left:6px; font-size:1em; font-weight:700;
+  display:inline-block; vertical-align:middle; transform:translateY(-0.1em);
+}
+.para-badge:hover{ opacity:.8; }
 
 /* ================= 底栏 ================= */
 #bottombar{
@@ -199,19 +208,121 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 /* 笔记层级视图：章 → 原文行 → 笔记子项 */
 .note-ch{ font-size:12px; color:var(--accent); font-weight:600; margin:14px 0 6px; }
 .note-para{
-  margin:6px 0 4px; padding:6px 8px; font-size:13px; color:var(--muted);
-  background:var(--accent-soft); border-radius:6px; line-height:1.55;
-  word-break:break-word;
+  margin:6px 0 4px; padding:0 8px; font-size:13px; color:var(--muted);
+  background:var(--accent-soft); border-radius:6px;
+  line-height:20px; height:40px; /* 固定两行高度 */
+  display:flex; align-items:center; overflow:hidden; /* 单行时垂直居中 */
 }
+.note-para-text{
+  flex:1; min-width:0; word-break:break-word;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+/* 笔记弹窗顶部的原文气泡 */
+.note-bubble{
+  font-size:12px; color:var(--muted); line-height:1.5;
+  background:var(--bg); border:1px solid var(--line); border-radius:12px;
+  padding:8px 12px; margin-bottom:10px;
+  word-break:break-word;
+  max-height:120px; overflow-y:auto; /* 完整显示原文，过长时气泡内滚动 */
+  scrollbar-width:thin; scrollbar-color:var(--muted) transparent; /* Firefox */
+}
+.note-bubble::-webkit-scrollbar{ width:5px; }
+.note-bubble::-webkit-scrollbar-track{ background:transparent; }
+.note-bubble::-webkit-scrollbar-thumb{ background:var(--muted); border-radius:3px; }
+.note-bubble::-webkit-scrollbar-thumb:hover{ background:var(--fg); }
 .note-sub{
   margin-left:12px; margin-bottom:6px; padding:6px 8px; cursor:pointer;
   border-left:2px solid var(--line); border-radius:0 6px 6px 0;
 }
 .note-sub:hover{ background:var(--accent-soft); }
-.note-sub .q{ font-size:12px; color:var(--muted); word-break:break-word; }
+.note-sub .q{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .note-sub .t{ font-size:14px; margin-top:2px; word-break:break-word; }
-.note-sub .tm{ font-size:11px; color:var(--muted); margin-top:3px; }
+.note-sub .tm{ font-size:10px; color:var(--muted); opacity:.72; margin-top:3px; }
 .empty-hint{ text-align:center; color:var(--muted); font-size:13px; padding:30px 10px; line-height:1.8; }
+
+/* 笔记面板：顶部按钮固定 + 列表滚动 + 真实分页 */
+#panelBody.notes-panel{
+  display:flex; flex-direction:column; overflow:hidden;
+  padding:10px 14px 0;
+}
+#panelBody.notes-panel .tabbar{ flex:none; }
+#notesTabBody{ flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+.notes-panel .export-bar{ flex:none; margin-bottom:8px; }
+.notes-list{
+  flex:1; min-height:0; overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch; padding:0 2px 12px;
+  scrollbar-width:thin;
+}
+.notes-list::-webkit-scrollbar{ width:5px; }
+.notes-list::-webkit-scrollbar-thumb{ background:var(--muted); border-radius:3px; }
+.notes-pager{
+  flex:none; display:flex; align-items:center; justify-content:center; gap:12px;
+  padding:8px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+  border-top:1px solid var(--line);
+}
+.notes-pager button{
+  height:32px; padding:0 12px; border-radius:8px; font-size:13px;
+  border:1px solid var(--line); color:var(--fg);
+}
+.notes-pager button:disabled{ opacity:.4; }
+.notes-pager .pg-info{ font-size:12px; color:var(--muted); min-width:52px; text-align:center; }
+
+/* 段落块：原文 → 无引用笔记 → 引用笔记（无引用笔记仅以边框颜色区分） */
+.note-block{ margin:0 0 10px; }
+.note-whole{
+  margin-left:12px; margin-bottom:6px; padding:6px 8px; cursor:pointer;
+  border-left:2px solid var(--accent); border-radius:0 6px 6px 0;
+}
+.note-whole:hover{ background:var(--accent-soft); }
+.note-whole .t{ font-size:14px; word-break:break-word; }
+.note-whole .tm{ font-size:10px; color:var(--muted); opacity:.72; margin-top:3px; }
+/* 笔记日期显隐（全局开关） */
+body.hide-note-time .tm{ display:none; }
+.note-whole.add{
+  border-left:2px dashed var(--line); color:var(--muted); opacity:.75;
+}
+.note-whole.add .t{ font-size:13px; }
+/* 奇数段落浅色背景（按段落区分奇偶行） */
+.note-block.odd{ background:var(--stripe); border-radius:8px; }
+
+/* 笔记弹窗：段落内多笔记编辑器（单个激活 textarea，列表滚动不分页） */
+#noteModal{ display:flex; flex-direction:column; max-height:min(82vh, 640px); }
+#noteModal h3, #noteModal .ctx, #noteModal .note-bubble{ flex:none; }
+#noteEditorList{
+  flex:1; min-height:0; overflow-y:auto; margin-top:4px; padding-right:2px;
+  scrollbar-width:thin;
+}
+#noteEditorList::-webkit-scrollbar{ width:5px; }
+#noteEditorList::-webkit-scrollbar-thumb{ background:var(--muted); border-radius:3px; }
+.ne-entry{
+  margin-bottom:8px; border:1px solid var(--line); border-radius:8px;
+  padding:8px 10px; cursor:pointer; background:var(--bg);
+}
+.ne-entry.active{ border-color:var(--accent); }
+.ne-entry.ne-whole{ border-left:3px solid var(--accent); }
+.ne-entry .ne-head{ display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+.ne-entry .ne-label{
+  flex:1; min-width:0; font-size:11px; color:var(--muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.ne-entry .ne-del{
+  flex:none; width:26px; height:26px; border-radius:6px; font-size:12px; color:#c0392b;
+  margin-left:auto;
+}
+.ne-entry .ne-del:hover{ background:var(--accent-soft); }
+.ne-entry .ne-view{ font-size:14px; line-height:1.55; word-break:break-word; }
+.ne-entry.ne-add{ border:1px dashed var(--line); border-left-width:3px; }
+.ne-entry.ne-add .ne-view{ color:var(--muted); font-size:13px; }
+#noteModal .ne-entry textarea{
+  width:100%; height:auto; min-height:64px; max-height:240px; padding:8px; font-size:14px; line-height:1.6;
+  border:1px solid transparent; border-radius:6px; background:var(--bg);
+  resize:none; overflow-y:hidden;
+  scrollbar-width:thin; scrollbar-color:var(--muted) transparent;
+}
+#noteModal .ne-entry textarea:focus{ outline:none; border-color:transparent; box-shadow:none; }
+#noteModal .ne-entry textarea::-webkit-scrollbar{ width:5px; }
+#noteModal .ne-entry textarea::-webkit-scrollbar-thumb{ background:var(--muted); border-radius:3px; }
+#noteClose{ background:var(--accent); color:#fff; }
 
 /* 笔记/标记页签 */
 .tabbar{ display:flex; gap:4px; margin-bottom:10px; padding:3px;
@@ -372,7 +483,6 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 }
 .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
 .modal-actions button{ height:36px; padding:0 16px; border-radius:8px; font-size:14px; }
-#noteSave{ background:var(--accent); color:#fff; }
 #txtiOk{ background:var(--accent); color:#fff; }
 #txtiOk:disabled{ opacity:.6; }
 #txtiCancel{ border:1px solid var(--line); }
@@ -389,8 +499,6 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
   white-space:pre-wrap; word-break:break-all; margin-top:8px;
   background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:6px 8px;
 }
-#noteCancel{ border:1px solid var(--line); }
-#noteDelete{ border:1px solid var(--line); color:#c0392b; margin-right:auto; }
 #modalOverlay{ position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.45); }
 
 /* Toast */
@@ -438,14 +546,6 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 #selMenu button:hover{ background:var(--accent-soft); color:var(--accent); }
 #selMenu button:disabled{ opacity:.4; cursor:not-allowed; }
 #selMenu button:disabled:hover{ background:transparent; color:var(--fg); }
-
-/* 选中文本引用（笔记弹窗） */
-.note-quote{
-  background:var(--accent-soft); border-left:3px solid var(--accent);
-  border-radius:6px; padding:8px 10px; margin-bottom:10px;
-  font-size:13px; line-height:1.6; max-height:90px; overflow:auto;
-  white-space:pre-wrap; word-break:break-word;
-}
 
 /* 右键 / 标记类型菜单（与选中菜单一致的横排样式） */
 #ctxMenu{
@@ -610,12 +710,10 @@ body.custom-sel #content, body.custom-sel #content p{
 <div id="noteModal" class="modal hidden">
   <h3>段落笔记</h3>
   <div class="ctx" id="noteCtx"></div>
-  <div class="note-quote hidden" id="noteQuote"></div>
-  <textarea id="noteText" placeholder="写下你的想法…"></textarea>
+  <div class="note-bubble hidden" id="noteParaBubble"></div>
+  <div id="noteEditorList"></div>
   <div class="modal-actions">
-    <button id="noteDelete">删除</button>
-    <button id="noteCancel">取消</button>
-    <button id="noteSave">保存</button>
+    <button id="noteClose">完成</button>
   </div>
 </div>
 
@@ -776,6 +874,7 @@ var DEFAULT_SETTINGS = {
   fontFamily: 'serif',
   letterSpacing: 0,
   customSel: false,
+  showNoteTime: true,
   markStyle: 'wavy'
 };
 /* 正文字体（字族）选项 */
@@ -940,6 +1039,7 @@ function applySettings(){
   $('#content').style.fontFamily = fontStack(settings.fontFamily);
   $('#content').style.letterSpacing = settings.letterSpacing + 'em';
   document.body.classList.toggle('custom-sel', !!settings.customSel);
+  document.body.classList.toggle('hide-note-time', !settings.showNoteTime);
   /* 版式/视口变化时重新分页 */
   var sig = layoutSignature();
   if (state.book && state._layoutSig && state._layoutSig !== sig){
@@ -1168,7 +1268,6 @@ var state = {
   pageIndex: 0,
   highlightTerm: '',
   notesMap: {},        /* key: 笔记 id -> note（每段可多条，按引用去重） */
-  notesByPara: {},     /* key: ci:pi -> true（该段是否有笔记，用于段落标记） */
   entities: [],        /* 实体标记 [{id,book,term,type,color,createdAt}] */
   entityRe: null,
   entityLookup: {},
@@ -1278,13 +1377,10 @@ function openBook(hash){
 function loadNotesMap(){
   if (!state.book) return Promise.resolve();
   return idbGetByIndex('notes', 'book', state.book.hash).then(function(notes){
-    var map = {}, byPara = {};
-    notes.forEach(function(n){
-      map[n.id] = n;
-      byPara[n.ci + ':' + n.pi] = true;
-    });
+    var map = {};
+    notes.forEach(function(n){ map[n.id] = n; });
     state.notesMap = map;
-    state.notesByPara = byPara;
+    notesPage = 0;
     updateNoteBadge();
   });
 }
@@ -1331,8 +1427,9 @@ function render(){
   $('#chapterPos').textContent = '第 ' + (ci + 1) + '/' + state.chapters.length + ' 章';
   var html = state.pageIndex === 0 ? '<h2 class="chapter-title">' + esc(ch.title) + '</h2>' : '';
   for (var pi = page.start; pi <= page.end; pi++){
-    var cls = state.notesByPara[ci + ':' + pi] ? 'has-note' : '';
-    html += '<p id="para-' + pi + '" class="' + cls + '">' + renderParaHTML(ch.paras[pi], state.highlightTerm) + '</p>';
+    var count = paraNoteCount(ci, pi);
+    var badge = count > 0 ? '<span class="para-badge" data-ci="' + ci + '" data-pi="' + pi + '">' + circledNum(count) + '</span>' : '';
+    html += '<p id="para-' + pi + '">' + renderParaHTML(ch.paras[pi], state.highlightTerm) + badge + '</p>';
   }
   $('#content').innerHTML = html;
   var totalPages = state.pages.length;
@@ -1440,6 +1537,7 @@ function closePanel(){
 }
 function renderPanel(name){
   var body = $('#panelBody');
+  body.classList.remove('notes-panel');
   var titles = { toc:'目录', search:'全文搜索', notes:'笔记', font:'字体调整', settings:'设置', about:'关于' };
   $('#panelTitle').textContent = titles[name] || '面板';
   if (name === 'toc') renderToc(body);
@@ -1522,8 +1620,11 @@ async function runSearch(term){
   });
 }
 var notesTab = 'notes'; /* 笔记面板当前页签：notes | ents */
+var notesPage = 0;      /* 笔记列表当前页 */
+var NOTES_PAGE_SIZE = 15; /* 每页段落块数 */
 function renderNotes(body){
   if (!state.book){ body.innerHTML = '<div class="empty-hint">还没有书籍</div>'; return; }
+  body.classList.add('notes-panel');
   body.innerHTML =
     '<div class="tabbar">' +
     '<button data-tab="notes" class="' + (notesTab === 'notes' ? 'active' : '') + '">笔记</button>' +
@@ -1542,31 +1643,83 @@ function renderNotes(body){
 function renderNotesList(box){
   var notes = [];
   Object.keys(state.notesMap).forEach(function(k){ notes.push(state.notesMap[k]); });
-  if (notes.length === 0){
-    box.innerHTML = '<div class="empty-hint">暂无笔记<br><br>选中文本后<b>右键 / 长按</b><br>即可添加笔记（含引用）</div>';
-    return;
-  }
-  var html = '<div class="export-bar">' +
+  var toolbar = '<div class="export-bar">' +
     '<select id="exportFmt" title="导出格式">' +
     '<option value="md">Markdown</option>' +
     '<option value="txt">纯文本</option>' +
     '<option value="json">JSON</option></select>' +
     '<button id="btnExportNotes">导出笔记</button></div>';
-  /* 层次化：章 → 原文行 → 笔记子项 */
-  groupNotesByPara(notes).forEach(function(g){
-    html += '<div class="note-ch">' + (g.ci >= 0 ? '第' + (g.ci + 1) + '章 · ' : '') + esc(g.chapterTitle) + '</div>';
+  if (notes.length === 0){
+    box.innerHTML = toolbar +
+      '<div class="notes-list scroll"><div class="empty-hint">暂无笔记<br><br>选中文本后<b>右键 / 长按</b><br>即可添加笔记（含引用）</div></div>';
+    $('#btnExportNotes').addEventListener('click', exportNotes);
+    return;
+  }
+  var groups = groupNotesByPara(notes);
+  /* 展平为段落块：分页按“段落块”计数（而非按章计数），避免一章内大量段落挤在同一页 */
+  var blocks = [];
+  groups.forEach(function(g){
     g.paras.forEach(function(p){
-      html += '<div class="note-para">' + esc(p.text) + '</div>';
-      p.notes.forEach(function(n){
-        html += '<div class="note-sub" data-id="' + esc(n.id) + '">' +
-                '<div class="q">' + (n.quote ? '「' + esc(n.quote) + '」' : esc(n.excerpt)) + '</div>' +
-                '<div class="t">' + esc(n.text) + '</div>' +
-                '<div class="tm">' + fmtTime(n.createdAt) + '</div></div>';
-      });
+      blocks.push({ ci: g.ci, chapterTitle: g.chapterTitle, pi: p.pi, text: p.text, notes: p.notes });
     });
   });
+  var totalPages = Math.max(1, Math.ceil(blocks.length / NOTES_PAGE_SIZE));
+  if (notesPage >= totalPages) notesPage = totalPages - 1;
+  if (notesPage < 0) notesPage = 0;
+  var pageBlocks = blocks.slice(notesPage * NOTES_PAGE_SIZE, notesPage * NOTES_PAGE_SIZE + NOTES_PAGE_SIZE);
+  var html = toolbar + '<div class="notes-list scroll">';
+  /* 层次化：章 → 原文行（两行）→ 无引用笔记 → 引用笔记（引用单行截断）；奇数段落浅色背景 */
+  var lastKey = null;
+  pageBlocks.forEach(function(b, j){
+    var key = b.ci + '::' + b.chapterTitle;
+    if (key !== lastKey){
+      html += '<div class="note-ch">' + (b.ci >= 0 ? '第' + (b.ci + 1) + '章 · ' : '') + esc(b.chapterTitle) + '</div>';
+      lastKey = key;
+    }
+    var odd = ((notesPage * NOTES_PAGE_SIZE + j) % 2 === 0); /* 全局段落序号：1、3、5… 为奇数 */
+    html += '<div class="note-block' + (odd ? ' odd' : '') + '">' +
+            '<div class="note-para"><span class="note-para-text">' + esc(b.text) + '</span></div>';
+    var whole = null;
+    b.notes.forEach(function(n){ if (!n.quote) whole = n; });
+    if (whole){
+      html += '<div class="note-whole" data-ci="' + b.ci + '" data-pi="' + b.pi + '">' +
+              '<div class="t">' + esc(whole.text) + '</div>' +
+              '<div class="tm">' + fmtTime(whole.createdAt) + '</div></div>';
+    } else {
+      html += '<div class="note-whole add" data-ci="' + b.ci + '" data-pi="' + b.pi + '">' +
+              '<div class="t">＋ 添加笔记</div></div>';
+    }
+    b.notes.forEach(function(n){
+      if (!n.quote) return;
+      html += '<div class="note-sub" data-id="' + esc(n.id) + '">' +
+              '<div class="q">「' + esc(n.quote) + '」</div>' +
+              '<div class="t">' + esc(n.text) + '</div>' +
+              '<div class="tm">' + fmtTime(n.createdAt) + '</div></div>';
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  if (totalPages > 1){
+    html += '<div class="notes-pager">' +
+      '<button id="npPrev"' + (notesPage <= 0 ? ' disabled' : '') + '>‹ 上一页</button>' +
+      '<span class="pg-info" id="npInfo">' + (notesPage + 1) + ' / ' + totalPages + '</span>' +
+      '<button id="npNext"' + (notesPage >= totalPages - 1 ? ' disabled' : '') + '>下一页 ›</button></div>';
+  }
   box.innerHTML = html;
   $('#btnExportNotes').addEventListener('click', exportNotes);
+  if (totalPages > 1){
+    $('#npPrev').addEventListener('click', function(){ if (notesPage > 0){ notesPage--; renderNotesList(box); } });
+    $('#npNext').addEventListener('click', function(){ if (notesPage < totalPages - 1){ notesPage++; renderNotesList(box); } });
+  }
+  box.querySelectorAll('.note-whole').forEach(function(el){
+    el.addEventListener('click', function(){
+      var ci = parseInt(el.dataset.ci, 10), pi = parseInt(el.dataset.pi, 10);
+      if (ci < 0){ toast('对应章节已不存在'); return; }
+      closePanel();
+      jumpToParagraph(ci, pi, '');
+      openParaNotes(ci, pi, '');
+    });
+  });
   box.querySelectorAll('.note-sub').forEach(function(el){
     el.addEventListener('click', function(){
       var n = state.notesMap[el.dataset.id];
@@ -1575,7 +1728,7 @@ function renderNotesList(box){
       if (ci < 0){ toast('对应章节已不存在'); return; }
       closePanel();
       jumpToParagraph(ci, n.pi, '');
-      openNoteEditor(ci, n.pi, n.quote);
+      openParaNotes(ci, n.pi, n.quote);
     });
   });
 }
@@ -1584,26 +1737,28 @@ function renderEntsList(box){
     var o = entGroupOrder(a.type) - entGroupOrder(b.type);
     return o || a.term.localeCompare(b.term, 'zh');
   });
-  if (ents.length === 0){
-    box.innerHTML = '<div class="empty-hint">暂无标记<br><br>选中文本后<b>右键 / 长按</b><br>即可添加标记</div>';
-    return;
-  }
   var html = '<div class="export-bar">' +
     '<select id="exportEntFmt" title="导出格式">' +
     '<option value="md">Markdown</option>' +
     '<option value="txt">纯文本</option>' +
     '<option value="json">JSON</option></select>' +
     '<button id="btnExportEnts">导出标记</button></div>';
-  ents.forEach(function(e){
-    html += '<div class="ent-item" data-id="' + esc(e.id) + '">' +
-            '<span class="swatch" style="background:' + e.color + '"></span>' +
-            '<div class="ent-main">' +
-            '<div class="ent-term">' + esc(e.term) + '</div>' +
-            '<div class="ent-type">' + esc(ENT_TYPE_LABEL[e.type] || '其他') + '</div>' +
-            '</div>' +
-            '<button class="ent-edit" title="修改">✎</button>' +
-            '<button class="ent-del" title="删除">🗑</button></div>';
-  });
+  html += '<div class="notes-list scroll">';
+  if (ents.length === 0){
+    html += '<div class="empty-hint">暂无标记<br><br>选中文本后<b>右键 / 长按</b><br>即可添加标记</div>';
+  } else {
+    ents.forEach(function(e){
+      html += '<div class="ent-item" data-id="' + esc(e.id) + '">' +
+              '<span class="swatch" style="background:' + e.color + '"></span>' +
+              '<div class="ent-main">' +
+              '<div class="ent-term">' + esc(e.term) + '</div>' +
+              '<div class="ent-type">' + esc(ENT_TYPE_LABEL[e.type] || '其他') + '</div>' +
+              '</div>' +
+              '<button class="ent-edit" title="修改">✎</button>' +
+              '<button class="ent-del" title="删除">🗑</button></div>';
+    });
+  }
+  html += '</div>';
   box.innerHTML = html;
   $('#btnExportEnts').addEventListener('click', exportEnts);
   box.querySelectorAll('.ent-item').forEach(function(el){
@@ -1757,8 +1912,8 @@ function buildExportNotes(notes, fmt){
       p.notes.forEach(function(n){
         var q = (n.quote || '').replace(/\n/g, ' ');
         var t = n.text.replace(/\n/g, ' ');
-        if (isMd) lines.push('- 「' + q + '」：' + t);
-        else lines.push('  · 「' + q + '」：' + t);
+        if (isMd) lines.push(q ? ('- 「' + q + '」：' + t) : ('- ' + t));
+        else lines.push(q ? ('  · 「' + q + '」：' + t) : ('  · ' + t));
       });
     });
     lines.push('');
@@ -1953,8 +2108,7 @@ async function mergeBookAnnotations(book, notesArr, entitiesArr){
     if (!n || !n.text || typeof n.pi !== 'number') return;
     var ci = noteCiForBook(chapters, titleToCi, n);
     if (ci < 0) return; /* 无法定位章节，跳过 */
-    var quote = normalizeQuote(n.quote);
-    if (!quote) return;
+    var quote = normalizeQuote(n.quote); /* 允许空引用（无引用段落笔记） */
     var note = {
       id: book.hash + ':' + ci + ':' + n.pi + ':' + quote,
       book: book.hash,
@@ -2139,6 +2293,10 @@ function renderSettings(body){
     '<label class="chk-row"><input type="checkbox" id="setCustomSel"' + (settings.customSel ? ' checked' : '') + '> 自绘选区（彻底禁用系统菜单，Beta）</label>' +
     '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6">开启后改用自绘高亮与菜单，浏览器原生选区/菜单不再出现；桌面拖选、移动端长按选词+拖动扩展、双击选词。体验不佳可随时关闭。</div>' +
     '</div>' +
+    '<div class="set-row">' +
+    '<label class="chk-row"><input type="checkbox" id="setShowNoteTime"' + (settings.showNoteTime ? ' checked' : '') + '> 显示笔记日期</label>' +
+    '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6">关闭后，笔记列表中的日期时间不再显示。</div>' +
+    '</div>' +
     passwordSettingsHTML() +
     '<div class="set-row"><label>数据备份（标记 + 笔记）</label>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
@@ -2175,6 +2333,10 @@ function renderSettings(body){
     settings.customSel = this.checked;
     applySettings(); saveSettings();
     if (!this.checked) clearCustomSel();
+  });
+  $('#setShowNoteTime').addEventListener('change', function(){
+    settings.showNoteTime = this.checked;
+    applySettings(); saveSettings();
   });
   /* 密码防护 */
   var setPwSet = $('#setPwSet'), setPwChange = $('#setPwChange'), setPwRemove = $('#setPwRemove');
@@ -2306,73 +2468,153 @@ function noteCi(n){
   if (n.chapterTitle && state.titleToCi[n.chapterTitle] !== undefined) return state.titleToCi[n.chapterTitle];
   return -1;
 }
-var noteTarget = null; /* {ci, pi, quote, id} */
-function openNoteEditor(ci, pi, quote){
+/* 某段落笔记总数（无引用 + 引用），用于段落末尾徽章 */
+function paraNoteCount(ci, pi){
+  var c = 0;
+  Object.keys(state.notesMap).forEach(function(k){
+    var n = state.notesMap[k];
+    if (n.ci === ci && n.pi === pi) c++;
+  });
+  return c;
+}
+/* 带圈数字 ①-⑳（U+2460 起连续 20 个），超过 20 退回普通数字 */
+function circledNum(n){
+  if (n >= 1 && n <= 20) return String.fromCharCode(0x2460 + n - 1);
+  return String(n);
+}
+var noteTarget = null;   /* {ci, pi}：当前编辑的段落 */
+var noteActiveQuote = null; /* 当前激活条目的引用（'' 表示无引用段落笔记），null 表示无 */
+function openParaNotes(ci, pi, focusQuote){
   if (!state.book) return;
   closeEntEditor();
   hideSelMenu(); hideCtxMenu();
   var ch = state.chapters[ci];
-  var q = normalizeQuote(quote);
-  if (!q){ var para = ch.paras[pi] || ''; q = para.slice(0, 60) + (para.length > 60 ? '…' : ''); }
-  var note = state.notesMap[noteIdFor(ci, pi, q)];
-  noteTarget = { ci: ci, pi: pi, quote: q, id: note ? note.id : null };
+  if (!ch || !ch.paras[pi]) return;
+  noteTarget = { ci: ci, pi: pi };
+  noteActiveQuote = normalizeQuote(focusQuote || '');
+  $('#noteParaBubble').textContent = ch.paras[pi] || '';
+  $('#noteParaBubble').classList.toggle('hidden', !ch.paras[pi]);
   $('#noteCtx').textContent = '第' + (ci + 1) + '章 · ' + ch.title;
-  $('#noteQuote').textContent = '「' + q + '」';
-  $('#noteQuote').classList.toggle('hidden', !q);
-  $('#noteText').value = note ? note.text : '';
-  $('#noteDelete').classList.toggle('hidden', !note);
+  renderNoteEditorList();
   $('#modalOverlay').classList.remove('hidden');
   $('#noteModal').classList.remove('hidden');
-  setTimeout(function(){ $('#noteText').focus(); }, 50);
 }
-function closeNoteEditor(){
-  $('#modalOverlay').classList.add('hidden');
-  $('#noteModal').classList.add('hidden');
-  noteTarget = null;
+function noteEntryHTML(quote, note){
+  var isActive = quote === noteActiveQuote;
+  var isWhole = quote === '';
+  var label = isWhole ? '' : '「' + esc(quote) + '」';
+  var cls = 'ne-entry' + (isWhole ? ' ne-whole' : '') + (isActive ? ' active' : '') +
+            (!note && isWhole && !isActive ? ' ne-add' : '');
+  var html = '<div class="' + cls + '" data-quote="' + esc(quote) + '">';
+  var head = '';
+  if (label) head += '<span class="ne-label">' + label + '</span>';
+  if (note) head += '<button class="ne-del" title="删除">🗑</button>';
+  if (head) html += '<div class="ne-head">' + head + '</div>';
+  if (isActive){
+    html += '<textarea class="ne-input" placeholder="写下你的想法…">' + (note ? esc(note.text) : '') + '</textarea>';
+  } else if (note){
+    html += '<div class="ne-view">' + esc(note.text) + '</div>';
+  } else {
+    html += '<div class="ne-view">' + (isWhole ? '＋ 添加笔记' : '') + '</div>';
+  }
+  html += '</div>';
+  return html;
 }
-function saveNote(){
+/* 输入框随内容自动增高，超过上限才显示细滚动条，避免默认滚动条显得杂乱 */
+function autoGrowTextarea(el){
+  el.style.height = 'auto';
+  var max = 240;
+  el.style.height = Math.min(el.scrollHeight, max) + 'px';
+  el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden';
+}
+function renderNoteEditorList(){
   if (!noteTarget || !state.book) return;
-  var text = $('#noteText').value.trim();
   var t = noteTarget;
-  if (!text){ toast('笔记为空，未保存'); return; }
+  var list = $('#noteEditorList');
+  var whole = state.notesMap[noteIdFor(t.ci, t.pi, '')] || null;
+  var qnotes = [];
+  Object.keys(state.notesMap).forEach(function(k){
+    var n = state.notesMap[k];
+    if (n.ci === t.ci && n.pi === t.pi && n.quote) qnotes.push(n);
+  });
+  qnotes.sort(function(a, b){ return a.createdAt - b.createdAt; });
+  var html = noteEntryHTML('', whole);
+  qnotes.forEach(function(n){ html += noteEntryHTML(n.quote, n); });
+  /* 本次要新建的引用（尚不存在）作为激活空条目 */
+  if (noteActiveQuote && !state.notesMap[noteIdFor(t.ci, t.pi, noteActiveQuote)]){
+    html += noteEntryHTML(noteActiveQuote, null);
+  }
+  list.innerHTML = html;
+  list.querySelectorAll('.ne-entry').forEach(function(el){
+    var q = el.dataset.quote;
+    el.addEventListener('click', function(e){
+      if (e.target.closest('.ne-del')) return;
+      activateNoteEntry(q);
+    });
+    var del = el.querySelector('.ne-del');
+    if (del) del.addEventListener('click', function(e){ e.stopPropagation(); deleteNoteByQuote(q); });
+  });
+  var active = list.querySelector('.ne-entry.active textarea');
+  if (active){
+    autoGrowTextarea(active);
+    active.addEventListener('input', function(){ autoGrowTextarea(active); });
+    setTimeout(function(){ active.focus(); }, 50);
+  }
+}
+function activateNoteEntry(quote){
+  var q = normalizeQuote(quote);
+  if (noteActiveQuote === q) return;
+  saveActiveNote();
+  noteActiveQuote = q;
+  renderNoteEditorList();
+}
+function saveActiveNote(){
+  if (!noteTarget || !state.book || noteActiveQuote === null) return;
+  var t = noteTarget;
+  var ta = $('#noteEditorList').querySelector('.ne-entry.active textarea');
+  if (!ta) return;
+  var text = ta.value.trim();
+  if (!text) return; /* 空内容：已有笔记保留原样，新笔记直接丢弃 */
+  var id = noteIdFor(t.ci, t.pi, noteActiveQuote);
+  var existing = state.notesMap[id];
+  if (existing && existing.text === text) return;
   var para = state.chapters[t.ci].paras[t.pi] || '';
   var note = {
-    id: noteIdFor(t.ci, t.pi, t.quote),
+    id: id,
     book: state.book.hash,
     chapterTitle: state.chapters[t.ci].title,
     ci: t.ci,
     pi: t.pi,
     text: text,
-    quote: t.quote,
+    quote: noteActiveQuote,
     excerpt: para.slice(0, 60) + (para.length > 60 ? '…' : ''),
-    createdAt: Date.now()
+    createdAt: existing ? existing.createdAt : Date.now()
   };
-  idbPut('notes', note).then(function(){
-    state.notesMap[note.id] = note;
-    state.notesByPara[t.ci + ':' + t.pi] = true;
-    updateNoteBadge();
-    render(); /* 刷新段落标记 */
-    toast('笔记已保存');
-  }).catch(function(e){ toast('保存失败：' + e.message); });
-  closeNoteEditor();
+  state.notesMap[id] = note; /* 先同步内存，保证紧接着的重渲染立即可见 */
+  updateNoteBadge();
+  idbPut('notes', note).catch(function(e){ toast('保存失败：' + e.message); });
+  render();
 }
-function deleteNote(){
-  if (!noteTarget) return;
+function deleteNoteByQuote(quote){
+  if (!noteTarget || !state.book) return;
   var t = noteTarget;
-  idbDelete('notes', t.id).then(function(){
-    delete state.notesMap[t.id];
-    /* 若该段已无其它笔记，则移除段落标记 */
-    var has = false;
-    Object.keys(state.notesMap).forEach(function(k){
-      var n = state.notesMap[k];
-      if (n.ci === t.ci && n.pi === t.pi) has = true;
-    });
-    if (!has) delete state.notesByPara[t.ci + ':' + t.pi];
-    updateNoteBadge();
-    render();
-    toast('笔记已删除');
-  });
-  closeNoteEditor();
+  var q = normalizeQuote(quote);
+  var id = noteIdFor(t.ci, t.pi, q);
+  if (!state.notesMap[id]) return;
+  delete state.notesMap[id];
+  updateNoteBadge();
+  idbDelete('notes', id).catch(function(e){ toast('删除失败：' + e.message); });
+  if (noteActiveQuote === q) noteActiveQuote = null;
+  renderNoteEditorList();
+  render();
+  toast('笔记已删除');
+}
+function closeNoteEditor(){
+  saveActiveNote();
+  noteActiveQuote = null;
+  $('#modalOverlay').classList.add('hidden');
+  $('#noteModal').classList.add('hidden');
+  noteTarget = null;
 }
 function updateNoteBadge(){
   var badge = $('#noteBadge');
@@ -2572,7 +2814,7 @@ function buildCtxMenuItems(rawSel, ci, pi, x, y){
     var note = (ci >= 0 && pi >= 0) ? state.notesMap[noteIdFor(ci, pi, rawSel)] : null;
     items.push({
       html: note ? '📝 修改笔记' : '📝 添加笔记',
-      onClick: function(){ openNoteEditor(ci, pi, rawSel); }
+      onClick: function(){ openParaNotes(ci, pi, rawSel); }
     });
     items.push({ html: '🔍 搜索', onClick: function(){ searchText(rawSel.replace(/\s+/g, ' ').trim()); } });
     items.push({ html: '🏷️ 标记', onClick: function(){
@@ -3123,15 +3365,19 @@ function wireReaderEvents(){
     /* 轻点落在标记词上：交给 click 弹「复制/搜索」菜单，不弹选中菜单 */
     var tapEl = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
     var onMark = tapEl && tapEl.closest && tapEl.closest('.ent');
-    if (!onMark && isContentSelection()){
+    var onBadge = tapEl && tapEl.closest && tapEl.closest('.para-badge');
+    if (!onMark && !onBadge && isContentSelection()){
       /* 拖选结束 → 弹出菜单并收起原生选区（选区晚落定的情况由 selectionchange 同步处理） */
       if (showSelMenu()) collapseNativeSelection();
       touchStart = null;
       return;
     }
-    /* 上下滑动翻页：上滑 → 下一页，下滑 → 上一页 */
-    if (Math.abs(dy) > 60 && Math.abs(dx) < 60){
-      dy < 0 ? nextPage() : prevPage();
+    /* 点击左右两侧翻页：左侧 → 上一页，右侧 → 下一页（轻点且未落在标记/徽章上） */
+    if (!onMark && !onBadge && Math.abs(dx) < 30 && Math.abs(dy) < 30){
+      var x = e.changedTouches[0].clientX;
+      var w = $('#reader').clientWidth;
+      if (x < w / 3) prevPage();
+      else if (x > w * 2 / 3) nextPage();
     }
     touchStart = null;
   }, { passive: true });
@@ -3167,12 +3413,35 @@ function wireReaderEvents(){
     finishCustomSel();
   });
   $('#reader').addEventListener('dblclick', function(e){
-    if (!settings.customSel || !state.book) return;
-    if (e.target.closest && e.target.closest('.ent')) return;
+    if (!state.book || state.chapterIndex < 0) return;
+    var p = e.target.closest ? e.target.closest('#content p') : null;
+    var m = p && p.id ? /^para-(\d+)$/.exec(p.id) : null;
+    if (!m) return; /* 双击非段落（如章节标题）不处理 */
+    if (e.target.closest && (e.target.closest('.ent') || e.target.closest('.para-badge'))) return;
+    var pi = parseInt(m[1], 10);
+    if (settings.customSel){
+      e.preventDefault();
+      hideSelMenu(); hideCtxMenu();
+      selectWordAt(e.clientX, e.clientY);
+      finishCustomSel();
+      return;
+    }
+    /* 默认模式：双击段落 → 编辑该段无引用笔记 */
     e.preventDefault();
     hideSelMenu(); hideCtxMenu();
-    selectWordAt(e.clientX, e.clientY);
-    finishCustomSel();
+    openParaNotes(state.chapterIndex, pi, '');
+  });
+  /* 点击段落末尾笔记徽章 → 打开该段笔记编辑 */
+  $('#reader').addEventListener('click', function(e){
+    var b = e.target && e.target.closest ? e.target.closest('.para-badge') : null;
+    if (!b || !state.book || state.chapterIndex < 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    state.selHideBlocked = Date.now() + 350;
+    hideSelMenu(); hideCtxMenu();
+    var ci = parseInt(b.dataset.ci, 10), pi = parseInt(b.dataset.pi, 10);
+    if (isNaN(ci) || isNaN(pi)) return;
+    openParaNotes(ci, pi, '');
   });
   /* 点击实体标记（波浪线）→ 复制 / 搜索 菜单 */
   $('#reader').addEventListener('click', function(e){
@@ -3223,7 +3492,7 @@ function wireReaderEvents(){
     var pi = selPara;
     hideSelMenu();
     if (pi < 0 || !state.book || state.chapterIndex < 0){ toast('请先选择正文文本'); return; }
-    openNoteEditor(state.chapterIndex, pi, selText);
+    openParaNotes(state.chapterIndex, pi, selText);
   });
   $('#selSearch').addEventListener('click', searchSelText);
   /* 选中文本 → 标记（类型选择器原位替换一级菜单） */
@@ -3255,13 +3524,10 @@ function wireReaderEvents(){
   /* 点击菜单时不破坏选区 */
   $('#selMenu').addEventListener('mousedown', function(e){ e.preventDefault(); });
   /* 笔记弹窗 */
-  $('#noteSave').addEventListener('click', saveNote);
-  $('#noteCancel').addEventListener('click', closeNoteEditor);
-  $('#noteDelete').addEventListener('click', deleteNote);
+  $('#noteClose').addEventListener('click', closeNoteEditor);
   $('#modalOverlay').addEventListener('click', closeNoteEditor);
   $('#noteModal').addEventListener('keydown', function(e){
     if (e.key === 'Escape'){ e.preventDefault(); closeNoteEditor(); }
-    else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); saveNote(); }
   });
   /* 标记编辑弹窗 */
   $('#entSave').addEventListener('click', saveEnt);
