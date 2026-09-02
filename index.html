@@ -381,6 +381,9 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 #fpStart{ background:var(--accent); color:#fff; }
 #fpStart:disabled{ opacity:.6; }
 #fpCancel{ border:1px solid var(--line); }
+#clipOk{ background:var(--accent); color:#fff; }
+#clipCancel{ border:1px solid var(--line); }
+#clipContent{ height:150px; }
 .fp-result{
   max-height:130px; overflow:auto; font-size:12px; color:var(--muted);
   white-space:pre-wrap; word-break:break-all; margin-top:8px;
@@ -565,7 +568,7 @@ body.custom-sel #content, body.custom-sel #content p{
         <strong>点击选择</strong> 或将 <strong>.txt / .txti</strong> 文件拖拽到此处<br>
         <span style="font-size:12px">.txt 自动识别 UTF-8/GBK/UTF-16；.txti 为 AES-GCM 加密，导入时需输入密码</span>
       </div>
-      <input type="file" id="fileInput" accept=".txt,.txti,text/plain,text/*" class="hidden">
+      <input type="file" id="fileInput" accept=".txt,.txti,text/plain,text/*,application/octet-stream,*/*" class="hidden">
       <div class="url-row">
         <input id="urlInput" type="url" placeholder="或粘贴 .txt 文件链接，例如 https://…/book.txt" spellcheck="false">
         <select id="proxySelect" title="跨域代理">
@@ -577,6 +580,7 @@ body.custom-sel #content, body.custom-sel #content p{
         </select>
         <button id="btnImportUrl">导入</button>
       </div>
+      <button id="btnClipboardImport" class="btn-plain" style="margin-top:8px">从剪贴板导入</button>
       <p class="lib-tip">链接导入受跨域(CORS)限制，直连失败请选代理；百度网盘等需登录的分享链接请先下载到本地再导入。</p>
     </section>
 
@@ -672,6 +676,26 @@ body.custom-sel #content, body.custom-sel #content p{
   <div class="modal-actions">
     <button id="fpCancel">取消</button>
     <button id="fpStart">选择文件夹并处理</button>
+  </div>
+</div>
+
+<!-- 从剪贴板导入弹窗 -->
+<div id="clipOverlay" class="hidden"></div>
+<div id="clipModal" class="modal hidden">
+  <h3>从剪贴板导入</h3>
+  <div class="ctx" id="clipCtx"></div>
+  <div class="ent-field">
+    <label>小说名</label>
+    <div style="display:flex;gap:6px">
+      <input id="clipName" placeholder="小说名" style="flex:1">
+      <button id="clipExtract" class="btn-plain">从首行提取</button>
+    </div>
+  </div>
+  <div class="ent-field"><label>正文</label><textarea id="clipContent" placeholder="在此粘贴正文…"></textarea></div>
+  <div class="lock-err" id="clipErr"></div>
+  <div class="modal-actions">
+    <button id="clipCancel">取消</button>
+    <button id="clipOk">导入</button>
   </div>
 </div>
 
@@ -3051,6 +3075,7 @@ function wireReaderEvents(){
     if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
   });
   $('#btnImportUrl').addEventListener('click', importUrl);
+  $('#btnClipboardImport').addEventListener('click', importFromClipboard);
   $('#urlInput').addEventListener('keydown', function(e){ if (e.key === 'Enter' && !isImeComposing(e)) importUrl(); });
   /* 移动端：左右滑动翻页，拖选文本弹菜单（长按选择 → 复制/笔记/搜索/标记） */
   var touchStart = null, touching = false, customLongPressTimer = null;
@@ -3260,6 +3285,15 @@ function wireReaderEvents(){
   $('#annoCancel').addEventListener('click', hideAnnoModal);
   $('#annoOverlay').addEventListener('click', hideAnnoModal);
   $('#annoModal').addEventListener('keydown', function(e){ if (e.key === 'Escape'){ e.preventDefault(); hideAnnoModal(); } });
+  /* 从剪贴板导入弹窗 */
+  $('#clipOk').addEventListener('click', clipOk);
+  $('#clipCancel').addEventListener('click', hideClipModal);
+  $('#clipOverlay').addEventListener('click', hideClipModal);
+  $('#clipExtract').addEventListener('click', function(){ $('#clipName').value = extractNameFromText($('#clipContent').value); });
+  $('#clipContent').addEventListener('input', function(){
+    if (!$('#clipName').value.trim()) $('#clipName').value = extractNameFromText(this.value);
+  });
+  $('#clipModal').addEventListener('keydown', function(e){ if (e.key === 'Escape'){ e.preventDefault(); hideClipModal(); } });
   /* 文件处理弹窗 */
   $('#btnFileProc').addEventListener('click', openFileProcModal);
   $('#fpStart').addEventListener('click', runFileProc);
@@ -3539,12 +3573,51 @@ async function tryTxtiWithPassword(buf, password){
     return true;
   } catch(e){ return false; }
 }
+/* ---------- 从剪贴板导入 ---------- */
+function extractNameFromText(text){
+  var lines = String(text || '').replace(/^\uFEFF/, '').split(/\r\n|\r|\n/);
+  for (var i = 0; i < lines.length; i++){
+    var l = lines[i].trim();
+    if (l) return l.length > 30 ? l.slice(0, 30) + '…' : l;
+  }
+  return '';
+}
+async function importFromClipboard(){
+  var text = '';
+  try {
+    if (navigator.clipboard && navigator.clipboard.readText){
+      text = await navigator.clipboard.readText();
+    }
+  } catch(e){ text = ''; }
+  openClipModal(text || '');
+}
+function openClipModal(text){
+  hideSelMenu(); hideCtxMenu();
+  $('#clipContent').value = text || '';
+  $('#clipName').value = text ? extractNameFromText(text) : '';
+  $('#clipErr').textContent = '';
+  $('#clipCtx').textContent = text ? '已读取剪贴板内容，确认小说名后导入' : '未读取到内容（浏览器可能不支持自动读取），请手动粘贴到正文框';
+  $('#clipOverlay').classList.remove('hidden');
+  $('#clipModal').classList.remove('hidden');
+  setTimeout(function(){ (text ? $('#clipName') : $('#clipContent')).focus(); }, 50);
+}
+function hideClipModal(){
+  $('#clipOverlay').classList.add('hidden');
+  $('#clipModal').classList.add('hidden');
+}
+function clipOk(){
+  var name = $('#clipName').value.trim() || '剪贴板导入';
+  var content = $('#clipContent').value;
+  if (!content.trim()){ $('#clipErr').textContent = '正文为空'; return; }
+  hideClipModal();
+  importText(name, content);
+}
 function handleFile(file){
   if (/\.txti$/i.test(file.name)){
     importTxtiFile(file);
     return;
   }
-  if (!/\.txt$/i.test(file.name) && file.type && !file.type.includes('text')) {
+  if (!/\.txt$/i.test(file.name)){
     toast('请选择 .txt 或 .txti 文件');
     return;
   }
@@ -3634,7 +3707,8 @@ if (typeof module !== 'undefined' && module.exports){
     sha256Hex, buildAnnotationsPayload,
     encryptTxtiText, cleanTextWeb,
     hexToBytes, decryptTxtiWithKeyHex, encryptTxtiWithKeyHex,
-    noteCiForBook, md5
+    noteCiForBook, md5,
+    extractNameFromText
   };
 }
 </script>
