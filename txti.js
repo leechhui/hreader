@@ -38,6 +38,7 @@ function cleanText(text){
 
 /* ---------- 加密 / 解密 ---------- */
 function deriveKey(password){ return crypto.createHash('sha256').update(String(password), 'utf8').digest(); }
+function md5(s){ return crypto.createHash('md5').update(String(s), 'utf8').digest('hex'); }
 function buildPlaintext(content, name, version){
   name = String(name || '').replace(/[\r\n]/g, ' ').trim() || '未命名';
   content = String(content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -163,7 +164,7 @@ async function cmdEncrypt(args){
   const content = readTextFile(input);
   const name = args.name || path.basename(input).replace(/\.txt$/i, '');
   const data = encryptTxt(content, name, password);
-  const out = args.output || (path.basename(input).replace(/\.txt$/i, '') + '.txti');
+  const out = args.output || (md5(content) + '.txti'); /* 文件名 = 内容 MD5 */
   fs.writeFileSync(out, data);
   console.log('已加密：' + input + ' → ' + out + '（' + data.length + ' 字节，书名：' + name + '）');
 }
