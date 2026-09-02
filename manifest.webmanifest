@@ -1,0 +1,16 @@
+{
+  "name": "简读 · TXT 小说阅读器",
+  "short_name": "简读",
+  "description": "本地 TXT 小说阅读器：分页阅读、笔记、全文搜索、实体标记",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f7f4ec",
+  "theme_color": "#a05a2c",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
