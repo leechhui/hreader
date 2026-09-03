@@ -38,7 +38,7 @@ body[data-theme="dark"]{
   --stripe:rgba(255,255,255,.10);
 }
 *{ box-sizing:border-box; margin:0; padding:0; }
-html,body{ height:100%; overflow:hidden; }
+html,body{ height:100%; height:100dvh; min-height:100dvh; overflow:hidden; background:var(--bg); }
 body{
   background:var(--bg); color:var(--fg);
   font-family:var(--font-ui); font-size:15px;
@@ -61,9 +61,9 @@ input,select,textarea{ font-family:inherit; color:inherit; }
 /* ================= 顶栏 ================= */
 #topbar{
   position:fixed; top:0; left:0; right:0; z-index:30;
-  height:48px; height:calc(48px + env(safe-area-inset-top, 0px));
+  height:48px; height:calc(48px + constant(safe-area-inset-top, 0px)); height:calc(48px + env(safe-area-inset-top, 0px));
   display:flex; align-items:center; gap:4px;
-  padding:0 8px; padding:env(safe-area-inset-top, 0px) 8px 0;
+  padding:0 8px; padding:constant(safe-area-inset-top, 0px) 8px 0; padding:env(safe-area-inset-top, 0px) 8px 0;
   background:var(--bg2); border-bottom:1px solid var(--line);
 }
 #topbar .icon-btn{
@@ -94,8 +94,8 @@ input,select,textarea{ font-family:inherit; color:inherit; }
 #app, #app *, #library, #library *{ touch-action:none; }
 #reader{
   position:fixed; left:0; right:0;
-  top:48px; top:calc(48px + env(safe-area-inset-top, 0px));
-  bottom:50px; bottom:calc(50px + env(safe-area-inset-bottom, 0px));
+  top:48px; top:calc(48px + constant(safe-area-inset-top, 0px)); top:calc(48px + env(safe-area-inset-top, 0px));
+  bottom:50px; bottom:calc(50px + constant(safe-area-inset-bottom, 0px)); bottom:calc(50px + env(safe-area-inset-bottom, 0px));
   padding:22px 16px 40px; touch-action:none; overscroll-behavior:contain;
   overflow:hidden; /* 分页阅读：每页恰好一屏，禁止页内滚动 */
   -webkit-touch-callout:none; /* 禁止 iOS 长按弹系统菜单，避免遮挡自绘菜单 */
@@ -129,9 +129,9 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 /* ================= 底栏 ================= */
 #bottombar{
   position:fixed; left:0; right:0; bottom:0; z-index:30;
-  height:50px; height:calc(50px + env(safe-area-inset-bottom, 0px));
+  height:50px; height:calc(50px + constant(safe-area-inset-bottom, 0px)); height:calc(50px + env(safe-area-inset-bottom, 0px));
   display:flex; align-items:center; gap:2px;
-  padding:0 6px; padding:0 6px env(safe-area-inset-bottom, 0px);
+  padding:0 6px; padding:0 6px constant(safe-area-inset-bottom, 0px); padding:0 6px env(safe-area-inset-bottom, 0px);
   background:var(--bg2); border-top:1px solid var(--line);
 }
 #bottombar button{
@@ -160,15 +160,15 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 }
 #drawer.open{ transform:translateX(0); }
 .drawer-head{
-  flex:none; height:48px; height:calc(48px + env(safe-area-inset-top, 0px));
+  flex:none; height:48px; height:calc(48px + constant(safe-area-inset-top, 0px)); height:calc(48px + env(safe-area-inset-top, 0px));
   display:flex; align-items:center; justify-content:space-between;
-  padding:0 8px 0 16px; padding:env(safe-area-inset-top, 0px) 8px 0 16px;
+  padding:0 8px 0 16px; padding:constant(safe-area-inset-top, 0px) 8px 0 16px; padding:env(safe-area-inset-top, 0px) 8px 0 16px;
   border-bottom:1px solid var(--line);
 }
 .drawer-head h3{ font-size:15px; }
 .drawer-head button{ width:36px; height:36px; border-radius:8px; font-size:16px; }
 .drawer-head button:hover{ background:var(--accent-soft); }
-#panelBody{ flex:1; padding:10px 14px 24px; padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px)); }
+#panelBody{ flex:1; padding:10px 14px 24px; padding-bottom:calc(24px + constant(safe-area-inset-bottom, 0px)); padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px)); }
 
 /* 目录 */
 .toc-item{
@@ -234,7 +234,7 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
   padding:0 2px 12px;
 }
 #panelBody.search-panel #searchPager{
-  flex:none; padding:8px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+  flex:none; padding:8px 0 calc(10px + constant(safe-area-inset-bottom, 0px)); padding:8px 0 calc(10px + env(safe-area-inset-bottom, 0px));
   border-top:1px solid var(--line);
 }
 #panelBody.search-panel .search-pager{ margin-top:0; }
@@ -338,7 +338,7 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 }
 .notes-pager{
   flex:none; display:flex; align-items:center; justify-content:center; gap:12px;
-  padding:8px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+  padding:8px 0 calc(10px + constant(safe-area-inset-bottom, 0px)); padding:8px 0 calc(10px + env(safe-area-inset-bottom, 0px));
   border-top:1px solid var(--line);
 }
 .notes-pager button{
@@ -478,8 +478,8 @@ body.hide-note-time .tm{ display:none; }
 #library{
   position:fixed; inset:0; z-index:50; background:var(--bg);
   display:flex; flex-direction:column;
-  padding-top:env(safe-area-inset-top, 0px);
-  padding-bottom:env(safe-area-inset-bottom, 0px);
+  padding-top:constant(safe-area-inset-top, 0px); padding-top:env(safe-area-inset-top, 0px);
+  padding-bottom:constant(safe-area-inset-bottom, 0px); padding-bottom:env(safe-area-inset-bottom, 0px);
 }
 .lib-inner{
   flex:1; min-height:0; max-width:640px; width:100%; margin:0 auto;
@@ -681,6 +681,13 @@ body.custom-sel #content, body.custom-sel #content p{
   #topbar .icon-btn{ width:34px; height:34px; }
   .hide-mobile{ display:none !important; }
   #bookTitle{ font-size:13px; }
+}
+/* ===== iOS PWA 底部安全区背景兜底：防止底栏与屏幕底边之间透出系统默认背景 ===== */
+body::after{
+  content:""; position:fixed; left:0; right:0; bottom:0;
+  height:constant(safe-area-inset-bottom, 0px);
+  height:env(safe-area-inset-bottom, 0px);
+  background:var(--bg2); z-index:29; pointer-events:none;
 }
 </style>
 </head>
