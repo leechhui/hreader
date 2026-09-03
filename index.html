@@ -38,12 +38,12 @@ body[data-theme="dark"]{
   --stripe:rgba(255,255,255,.10);
 }
 *{ box-sizing:border-box; margin:0; padding:0; }
-html,body{ height:100%; }
+html,body{ height:100%; overflow:hidden; }
 body{
   background:var(--bg); color:var(--fg);
   font-family:var(--font-ui); font-size:15px;
   -webkit-tap-highlight-color:transparent;
-  overflow:hidden;
+  overflow:hidden; overscroll-behavior:none;
 }
 button{ font-family:inherit; cursor:pointer; color:inherit; background:none; border:none; }
 button, input, select, textarea{ touch-action:manipulation; } /* 禁双击缩放 */
@@ -92,7 +92,7 @@ input,select,textarea{ font-family:inherit; color:inherit; }
 #app{ height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
 #reader{
   flex:1; min-height:0;
-  padding:22px 16px 40px; touch-action:pan-y; overscroll-behavior:contain;
+  padding:22px 16px 40px; touch-action:none; overscroll-behavior:contain;
   overflow:hidden; /* 分页阅读：每页恰好一屏，禁止页内滚动 */
   -webkit-touch-callout:none; /* 禁止 iOS 长按弹系统菜单，避免遮挡自绘菜单 */
 }
