@@ -60,7 +60,7 @@ input,select,textarea{ font-family:inherit; color:inherit; }
 
 /* ================= 顶栏 ================= */
 #topbar{
-  position:relative; flex:none;
+  position:fixed; top:0; left:0; right:0; z-index:30;
   height:48px; height:calc(48px + env(safe-area-inset-top, 0px));
   display:flex; align-items:center; gap:4px;
   padding:0 8px; padding:env(safe-area-inset-top, 0px) 8px 0;
@@ -89,11 +89,13 @@ input,select,textarea{ font-family:inherit; color:inherit; }
 #progressFill{ height:100%; width:0; background:var(--accent); transition:width .3s ease; }
 
 /* ================= 阅读区 ================= */
-#app{ position:fixed; inset:0; display:flex; flex-direction:column; overflow:hidden; }
+#app{ height:100vh; height:100dvh; }
 /* 应用与书库外壳禁止浏览器接管触摸手势，避免 iOS 橡皮筋滚动导致底栏位移/留白 */
 #app, #app *, #library, #library *{ touch-action:none; }
 #reader{
-  flex:1; min-height:0;
+  position:fixed; left:0; right:0;
+  top:48px; top:calc(48px + env(safe-area-inset-top, 0px));
+  bottom:50px; bottom:calc(50px + env(safe-area-inset-bottom, 0px));
   padding:22px 16px 40px; touch-action:none; overscroll-behavior:contain;
   overflow:hidden; /* 分页阅读：每页恰好一屏，禁止页内滚动 */
   -webkit-touch-callout:none; /* 禁止 iOS 长按弹系统菜单，避免遮挡自绘菜单 */
@@ -126,7 +128,7 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 
 /* ================= 底栏 ================= */
 #bottombar{
-  flex:none;
+  position:fixed; left:0; right:0; bottom:0; z-index:30;
   height:50px; height:calc(50px + env(safe-area-inset-bottom, 0px));
   display:flex; align-items:center; gap:2px;
   padding:0 6px; padding:0 6px env(safe-area-inset-bottom, 0px);
