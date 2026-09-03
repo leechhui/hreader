@@ -51,10 +51,16 @@ input,select,textarea{ font-family:inherit; color:inherit; }
 .scroll{ overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; }
 .hidden{ display:none !important; }
 :focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+/* 全局统一滚动条：细、浅、不扎眼（Firefox + WebKit） */
+*{ scrollbar-width:thin; scrollbar-color:var(--muted) transparent; }
+*::-webkit-scrollbar{ width:6px; height:6px; }
+*::-webkit-scrollbar-track{ background:transparent; }
+*::-webkit-scrollbar-thumb{ background:var(--muted); border-radius:3px; }
+*::-webkit-scrollbar-thumb:hover{ background:var(--fg); }
 
 /* ================= 顶栏 ================= */
 #topbar{
-  position:fixed; top:0; left:0; right:0; z-index:30;
+  position:relative; flex:none;
   height:48px; height:calc(48px + env(safe-area-inset-top, 0px));
   display:flex; align-items:center; gap:4px;
   padding:0 8px; padding:env(safe-area-inset-top, 0px) 8px 0;
@@ -83,11 +89,9 @@ input,select,textarea{ font-family:inherit; color:inherit; }
 #progressFill{ height:100%; width:0; background:var(--accent); transition:width .3s ease; }
 
 /* ================= 阅读区 ================= */
-#app{ height:100dvh; }
+#app{ height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
 #reader{
-  position:fixed; left:0; right:0;
-  top:48px; top:calc(48px + env(safe-area-inset-top, 0px));
-  bottom:50px; bottom:calc(50px + env(safe-area-inset-bottom, 0px));
+  flex:1; min-height:0;
   padding:22px 16px 40px; touch-action:pan-y; overscroll-behavior:contain;
   overflow:hidden; /* 分页阅读：每页恰好一屏，禁止页内滚动 */
   -webkit-touch-callout:none; /* 禁止 iOS 长按弹系统菜单，避免遮挡自绘菜单 */
@@ -120,7 +124,7 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 
 /* ================= 底栏 ================= */
 #bottombar{
-  position:fixed; left:0; right:0; bottom:0; z-index:30;
+  flex:none;
   height:50px; height:calc(50px + env(safe-area-inset-bottom, 0px));
   display:flex; align-items:center; gap:2px;
   padding:0 6px; padding:0 6px env(safe-area-inset-bottom, 0px);
@@ -194,6 +198,87 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 .search-result .snip{ color:var(--fg); }
 .search-result .pi{ color:var(--muted); font-size:11px; }
 
+/* 搜索历史 */
+.search-hist{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.search-hist-item{
+  display:inline-flex; align-items:center; gap:2px;
+  height:28px; padding:0 4px 0 10px; border-radius:14px; font-size:12px;
+  border:1px solid var(--line); color:var(--muted); background:var(--bg);
+  cursor:pointer;
+}
+.search-hist-item:hover{ background:var(--accent-soft); color:var(--accent); }
+.search-hist-item .hist-del{
+  width:18px; height:18px; border-radius:50%; font-size:13px; line-height:1;
+  display:inline-flex; align-items:center; justify-content:center;
+  color:var(--muted);
+}
+.search-hist-item .hist-del:hover{ color:#c0392b; background:var(--bg); }
+/* 搜索分页 */
+.search-pager{ display:flex; align-items:center; justify-content:center; gap:12px; margin-top:10px; }
+.search-pager button{ height:30px; padding:0 10px; border-radius:7px; font-size:12px; border:1px solid var(--line); color:var(--fg); }
+.search-pager button:disabled{ opacity:.4; }
+.search-pager span{ font-size:12px; color:var(--muted); }
+
+/* 搜索面板：顶部固定 + 列表滚动 + 底部分页固定 */
+#panelBody.search-panel{
+  display:flex; flex-direction:column; overflow:hidden;
+  padding:10px 14px 0;
+}
+#panelBody.search-panel .search-fixed{ flex:none; }
+#panelBody.search-panel #searchResult{
+  flex:1; min-height:0; overflow-y:auto; overflow-x:hidden;
+  padding:0 2px 12px;
+}
+#panelBody.search-panel #searchPager{
+  flex:none; padding:8px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+  border-top:1px solid var(--line);
+}
+#panelBody.search-panel .search-pager{ margin-top:0; }
+
+/* 搜索预览气泡（紧邻右侧侧边栏，不遮挡侧边栏） */
+#searchPreview{
+  position:fixed; right:calc(min(340px, 88vw) + 16px); top:50%; transform:translateY(-50%);
+  width:min(560px, calc(100vw - min(340px, 88vw) - 32px));
+  height:78vh; z-index:51;
+  background:var(--bg2); border:1px solid var(--line); border-radius:14px;
+  box-shadow:0 12px 40px var(--shadow);
+  display:flex; flex-direction:column; padding:16px;
+}
+@media (max-width:640px){
+  #searchPreview{
+    right:auto; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:min(560px, 92vw);
+  }
+}
+#searchPreview .sp-head{ flex:none; font-size:12px; color:var(--muted); margin-bottom:8px; line-height:1.5; }
+#searchPreviewBody{
+  flex:1; min-height:0; overflow-y:auto; padding-right:2px;
+}
+#searchPreviewBody .ctx-line{
+  font-size:14px; line-height:1.7; padding:4px 8px; border-radius:6px;
+  white-space:pre-wrap; word-break:break-word; color:var(--muted);
+}
+#searchPreviewBody .ctx-line.hit{
+  background:var(--accent-soft); color:var(--fg); cursor:pointer;
+  border-left:3px solid var(--accent);
+}
+#searchPreviewBody .ctx-line.hit:hover{ background:var(--mark); }
+#searchPreviewBody mark{ background:var(--mark); color:inherit; }
+#searchPreview .sp-foot{ flex:none; display:flex; align-items:center; gap:8px; margin-top:10px; }
+#searchPreview .sp-tip{ flex:1; font-size:11px; color:var(--muted); }
+#searchPreview .sp-foot button{ height:30px; padding:0 10px; border-radius:7px; font-size:12px; border:1px solid var(--line); color:var(--fg); background:var(--bg); }
+#searchPreview .sp-foot button:disabled{ opacity:.4; }
+#searchPreview .sp-foot #searchPreviewClose{ background:var(--accent); color:#fff; border:none; }
+
+/* 搜索跳转返回按钮 */
+#searchBackBtn{
+  position:fixed; right:12px; bottom:64px; z-index:35;
+  height:36px; padding:0 14px; border-radius:18px;
+  background:var(--accent); color:#fff; font-size:13px;
+  box-shadow:0 4px 14px var(--shadow);
+}
+#searchBackBtn:hover{ opacity:.9; }
+
 /* 笔记列表 */
 .note-item{
   padding:10px 8px; border-radius:8px; border-bottom:1px dashed var(--line);
@@ -224,12 +309,7 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
   padding:8px 12px; margin-bottom:10px;
   word-break:break-word;
   max-height:120px; overflow-y:auto; /* 完整显示原文，过长时气泡内滚动 */
-  scrollbar-width:thin; scrollbar-color:var(--muted) transparent; /* Firefox */
 }
-.note-bubble::-webkit-scrollbar{ width:5px; }
-.note-bubble::-webkit-scrollbar-track{ background:transparent; }
-.note-bubble::-webkit-scrollbar-thumb{ background:var(--muted); border-radius:3px; }
-.note-bubble::-webkit-scrollbar-thumb:hover{ background:var(--fg); }
 .note-sub{
   margin-left:12px; margin-bottom:6px; padding:6px 8px; cursor:pointer;
   border-left:2px solid var(--line); border-radius:0 6px 6px 0;
@@ -251,10 +331,7 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 .notes-list{
   flex:1; min-height:0; overflow-y:auto; overflow-x:hidden;
   -webkit-overflow-scrolling:touch; padding:0 2px 12px;
-  scrollbar-width:thin;
 }
-.notes-list::-webkit-scrollbar{ width:5px; }
-.notes-list::-webkit-scrollbar-thumb{ background:var(--muted); border-radius:3px; }
 .notes-pager{
   flex:none; display:flex; align-items:center; justify-content:center; gap:12px;
   padding:8px 0 calc(10px + env(safe-area-inset-bottom, 0px));
@@ -290,10 +367,7 @@ body.hide-note-time .tm{ display:none; }
 #noteModal h3, #noteModal .ctx, #noteModal .note-bubble{ flex:none; }
 #noteEditorList{
   flex:1; min-height:0; overflow-y:auto; margin-top:4px; padding-right:2px;
-  scrollbar-width:thin;
 }
-#noteEditorList::-webkit-scrollbar{ width:5px; }
-#noteEditorList::-webkit-scrollbar-thumb{ background:var(--muted); border-radius:3px; }
 .ne-entry{
   margin-bottom:8px; border:1px solid var(--line); border-radius:8px;
   padding:8px 10px; cursor:pointer; background:var(--bg);
@@ -317,11 +391,8 @@ body.hide-note-time .tm{ display:none; }
   width:100%; height:auto; min-height:64px; max-height:240px; padding:8px; font-size:14px; line-height:1.6;
   border:1px solid transparent; border-radius:6px; background:var(--bg);
   resize:none; overflow-y:hidden;
-  scrollbar-width:thin; scrollbar-color:var(--muted) transparent;
 }
 #noteModal .ne-entry textarea:focus{ outline:none; border-color:transparent; box-shadow:none; }
-#noteModal .ne-entry textarea::-webkit-scrollbar{ width:5px; }
-#noteModal .ne-entry textarea::-webkit-scrollbar-thumb{ background:var(--muted); border-radius:3px; }
 #noteClose{ background:var(--accent); color:#fff; }
 
 /* 笔记/标记页签 */
@@ -463,6 +534,13 @@ body.hide-note-time .tm{ display:none; }
   flex:none; width:34px; height:34px; border-radius:8px; font-size:14px;
 }
 .book-del:hover{ background:rgba(200,60,60,.15); color:#c0392b; }
+.book-pin{
+  flex:none; width:34px; height:34px; border-radius:8px; font-size:15px;
+  color:var(--muted);
+}
+.book-pin:hover{ background:var(--accent-soft); }
+.book-pin.pinned{ color:var(--accent); }
+.book-card.pinned{ box-shadow:inset 3px 0 0 var(--accent); }
 
 /* ================= 弹窗（笔记编辑） ================= */
 .modal{
@@ -500,6 +578,7 @@ body.hide-note-time .tm{ display:none; }
   background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:6px 8px;
 }
 #modalOverlay{ position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.45); }
+#entOverlay, #txtiOverlay, #annoOverlay, #clipOverlay, #fpOverlay{ position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.45); }
 
 /* Toast */
 #toast{
@@ -717,6 +796,19 @@ body.custom-sel #content, body.custom-sel #content p{
   </div>
 </div>
 
+<!-- 搜索预览气泡 -->
+<div id="searchPreview" class="hidden">
+  <div class="sp-head" id="spHead"></div>
+  <div id="searchPreviewBody"></div>
+  <div class="sp-foot">
+    <button id="spPrevHit">‹ 上一条</button>
+    <button id="spNextHit">下一条 ›</button>
+    <span class="sp-tip">点击高亮行跳转</span>
+    <button id="searchPreviewClose">关闭</button>
+  </div>
+</div>
+<button id="searchBackBtn" class="hidden">↩ 返回</button>
+
 <!-- 标记编辑弹窗 -->
 <div id="entOverlay" class="hidden"></div>
 <div id="entModal" class="modal hidden">
@@ -875,20 +967,22 @@ var DEFAULT_SETTINGS = {
   letterSpacing: 0,
   customSel: false,
   showNoteTime: true,
-  markStyle: 'wavy'
+  searchContextLines: 5,
+  markStyle: 'line',
+  lockIdleMinutes: 3
 };
 /* 正文字体（字族）选项 */
 var FONT_FAMILIES = [
-  { key: 'serif',    label: '默认衬线', stack: '"Noto Serif SC","Songti SC","STSong","SimSun",serif' },
-  { key: 'song',     label: '宋体',     stack: '"SimSun","Songti SC","STSong",serif' },
+  { key: 'serif',    label: '默认衬线', stack: '"Songti SC","Noto Serif SC","STSong","SimSun",serif' },
+  { key: 'song',     label: '宋体',     stack: '"Songti SC","SimSun","STSong",serif' },
   { key: 'jhls',     label: '京华老宋', stack: '"京华老宋体","KingHwaOldSong","KingHwaOldSongMN","京華老宋體","Songti SC","SimSun",serif' },
-  { key: 'hei',      label: '黑体',     stack: '"SimHei","PingFang SC","Microsoft YaHei",sans-serif' },
-  { key: 'kai',      label: '楷体',     stack: '"KaiTi","STKaiti","Kaiti SC",serif' },
-  { key: 'fangsong', label: '仿宋',     stack: '"FangSong","STFangsong",serif' },
-  { key: 'yahei',    label: '微软雅黑', stack: '"Microsoft YaHei","PingFang SC",sans-serif' },
-  { key: 'sourcehan-serif', label: '思源宋体', stack: '"Source Han Serif SC","Source Han Serif CN","Noto Serif SC","思源宋体","思源宋體",serif' },
-  { key: 'sourcehan-sans',  label: '思源黑体', stack: '"Source Han Sans SC","Source Han Sans CN","Noto Sans SC","思源黑体","思源黑體",sans-serif' },
-  { key: 'lxgw',     label: '霞鹜文楷', stack: '"LXGW WenKai","LXGW WenKai Screen","霞鹜文楷","霞鶩文楷","KaiTi",serif' }
+  { key: 'hei',      label: '黑体',     stack: '"PingFang SC","SimHei","Microsoft YaHei",sans-serif' },
+  { key: 'kai',      label: '楷体',     stack: '"Kaiti SC","STKaiti","KaiTi",serif' },
+  { key: 'fangsong', label: '仿宋',     stack: '"FangSong","STFangsong","Songti SC",serif' },
+  { key: 'yahei',    label: '微软雅黑', stack: '"PingFang SC","Microsoft YaHei",sans-serif' },
+  { key: 'sourcehan-serif', label: '思源宋体', stack: '"Source Han Serif SC","Source Han Serif CN","Noto Serif SC","思源宋体","思源宋體","Songti SC",serif' },
+  { key: 'sourcehan-sans',  label: '思源黑体', stack: '"Source Han Sans SC","Source Han Sans CN","Noto Sans SC","思源黑体","思源黑體","PingFang SC",sans-serif' },
+  { key: 'lxgw',     label: '霞鹜文楷', stack: '"LXGW WenKai","LXGW WenKai Screen","霞鹜文楷","霞鶩文楷","Kaiti SC","KaiTi",serif' }
 ];
 function fontStack(key){
   for (var i = 0; i < FONT_FAMILIES.length; i++){
@@ -1038,6 +1132,7 @@ function applySettings(){
   $('#content').style.setProperty('--ps', settings.paraSpacing + 'em');
   $('#content').style.fontFamily = fontStack(settings.fontFamily);
   $('#content').style.letterSpacing = settings.letterSpacing + 'em';
+  void $('#content').offsetWidth; /* 强制重排：iOS 切换字体后立即生效 */
   document.body.classList.toggle('custom-sel', !!settings.customSel);
   document.body.classList.toggle('hide-note-time', !settings.showNoteTime);
   /* 版式/视口变化时重新分页 */
@@ -1267,6 +1362,10 @@ var state = {
   pages: [],           /* 当前章分页 [{start,end}] */
   pageIndex: 0,
   highlightTerm: '',
+  searchTerm: '',      /* 当前搜索词（关闭面板后保留） */
+  searchResults: [],   /* 搜索结果 [{ci,pi,idx}] */
+  searchPage: 0,       /* 搜索结果当前页 */
+  searchJumpOrigin: null, /* {ci,pi} 搜索跳转前的原位置 */
   notesMap: {},        /* key: 笔记 id -> note（每段可多条，按引用去重） */
   entities: [],        /* 实体标记 [{id,book,term,type,color,createdAt}] */
   entityRe: null,
@@ -1367,6 +1466,11 @@ function openBook(hash){
       var ci = prog && prog.chapter >= 0 && prog.chapter < state.chapters.length ? prog.chapter : 0;
       state.chapterIndex = ci;
       state.highlightTerm = '';
+      state.searchTerm = '';
+      state.searchResults = [];
+      state.searchPage = 0;
+      state.searchJumpOrigin = null;
+      $('#searchBackBtn').classList.add('hidden');
       state.pages = buildPages(state.chapters[ci].paras, settings.charsPerPage);
       state.pageIndex = prog && prog.page >= 0 && prog.page < state.pages.length ? prog.page : 0;
       render();
@@ -1406,6 +1510,9 @@ function deleteBook(hash){
       tx.onerror = function(){ reject(tx.error); };
     });
   }).then(function(){
+    /* 同步清理置顶记录 */
+    var pinned = getPinnedBooks().filter(function(h){ return h !== hash; });
+    savePinnedBooks(pinned);
     if (state.book && state.book.hash === hash){
       state.book = null; state.chapters = []; state.chapterIndex = -1;
       localStorage.removeItem('hreader.lastBook');
@@ -1538,6 +1645,7 @@ function closePanel(){
 function renderPanel(name){
   var body = $('#panelBody');
   body.classList.remove('notes-panel');
+  body.classList.remove('search-panel');
   var titles = { toc:'目录', search:'全文搜索', notes:'笔记', font:'字体调整', settings:'设置', about:'关于' };
   $('#panelTitle').textContent = titles[name] || '面板';
   if (name === 'toc') renderToc(body);
@@ -1561,11 +1669,17 @@ function renderToc(body){
   var cur = body.querySelector('.toc-item.current');
   if (cur) cur.scrollIntoView({ block: 'center' });
 }
+var SEARCH_PAGE_SIZE = 30; /* 搜索结果每页条数 */
 function renderSearch(body){
+  body.classList.add('search-panel');
   body.innerHTML =
-    '<div class="search-box"><input id="searchInput" placeholder="输入关键词，搜索全文" value="' + esc(state.highlightTerm || '') + '">' +
-    '<button id="searchGo">搜索</button></div>' +
-    '<div id="searchResult"></div>';
+    '<div class="search-fixed">' +
+      '<div class="search-box"><input id="searchInput" placeholder="输入关键词，搜索全文" value="' + esc(state.searchTerm || '') + '">' +
+      '<button id="searchGo">搜索</button></div>' +
+      '<div id="searchHist"></div>' +
+    '</div>' +
+    '<div id="searchResult"></div>' +
+    '<div id="searchPager"></div>';
   var input = $('#searchInput');
   function go(){
     var term = input.value.trim();
@@ -1574,9 +1688,98 @@ function renderSearch(body){
   }
   $('#searchGo').addEventListener('click', go);
   input.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !isImeComposing(e)) go(); });
-  setTimeout(function(){ input.focus(); input.select(); }, 50);
+  renderSearchHistory($('#searchHist'));
+  renderSearchResults();
+  setTimeout(function(){ if (!state.searchTerm) input.focus(); }, 50);
+}
+/* 搜索历史（仅当前书，localStorage 存储） */
+function searchHistoryKey(){ return state.book ? 'hreader.searchHist.' + state.book.hash : ''; }
+function getSearchHistory(){
+  try { var raw = localStorage.getItem(searchHistoryKey()); return raw ? JSON.parse(raw) : []; }
+  catch(e){ return []; }
+}
+function pushSearchHistory(term){
+  if (!term) return;
+  var list = getSearchHistory().filter(function(t){ return t !== term; });
+  list.unshift(term);
+  list = list.slice(0, 6);
+  try { localStorage.setItem(searchHistoryKey(), JSON.stringify(list)); } catch(e){}
+}
+function removeSearchHistory(term){
+  var list = getSearchHistory().filter(function(t){ return t !== term; });
+  try { localStorage.setItem(searchHistoryKey(), JSON.stringify(list)); } catch(e){}
+}
+function renderSearchHistory(box){
+  var hist = getSearchHistory();
+  if (!hist.length){ box.innerHTML = ''; return; }
+  var html = '<div class="search-hist">';
+  hist.forEach(function(t){
+    html += '<span class="search-hist-item" data-t="' + esc(t) + '">' +
+            '<span class="hist-t">' + esc(t) + '</span>' +
+            '<button class="hist-del" title="删除">×</button></span>';
+  });
+  html += '</div>';
+  box.innerHTML = html;
+  box.querySelectorAll('.search-hist-item').forEach(function(item){
+    item.addEventListener('click', function(){
+      $('#searchInput').value = item.dataset.t;
+      runSearch(item.dataset.t);
+    });
+    item.querySelector('.hist-del').addEventListener('click', function(e){
+      e.stopPropagation();
+      removeSearchHistory(item.dataset.t);
+      renderSearchHistory(box);
+    });
+  });
+}
+function renderSearchResults(){
+  var box = $('#searchResult');
+  var pager = $('#searchPager');
+  if (pager) pager.innerHTML = '';
+  var results = state.searchResults;
+  if (!results.length){
+    box.innerHTML = state.searchTerm
+      ? '<div class="empty-hint">未找到「' + esc(state.searchTerm) + '」<br>试试其他关键词</div>'
+      : '<div class="empty-hint">输入关键词搜索全文</div>';
+    return;
+  }
+  var totalPages = Math.max(1, Math.ceil(results.length / SEARCH_PAGE_SIZE));
+  if (state.searchPage >= totalPages) state.searchPage = totalPages - 1;
+  if (state.searchPage < 0) state.searchPage = 0;
+  var start = state.searchPage * SEARCH_PAGE_SIZE;
+  var pageResults = results.slice(start, start + SEARCH_PAGE_SIZE);
+  var html = '<div class="search-meta">共 ' + results.length + ' 处匹配</div>';
+  pageResults.forEach(function(r, j){
+    var i = start + j;
+    var ch = state.chapters[r.ci];
+    var p = ch.paras[r.pi];
+    var s = Math.max(0, r.idx - 22), e = Math.min(p.length, r.idx + state.searchTerm.length + 22);
+    var snip = (s > 0 ? '…' : '') + highlightText(p.slice(s, e), state.searchTerm) + (e < p.length ? '…' : '');
+    html += '<button class="search-result" data-i="' + i + '">' +
+            '<div class="ch">第' + (r.ci + 1) + '章 · ' + esc(ch.title) + '</div>' +
+            '<div class="snip">' + snip + '</div>' +
+            '<div class="pi">第 ' + (r.pi + 1) + ' 段</div></button>';
+  });
+  box.innerHTML = html;
+  if (totalPages > 1 && pager){
+    pager.innerHTML = '<div class="search-pager">' +
+      '<button id="spPrev"' + (state.searchPage <= 0 ? ' disabled' : '') + '>‹ 上一页</button>' +
+      '<span>' + (state.searchPage + 1) + ' / ' + totalPages + '</span>' +
+      '<button id="spNext"' + (state.searchPage >= totalPages - 1 ? ' disabled' : '') + '>下一页 ›</button></div>';
+    $('#spPrev').addEventListener('click', function(){ if (state.searchPage > 0){ state.searchPage--; renderSearchResults(); } });
+    $('#spNext').addEventListener('click', function(){ if (state.searchPage < totalPages - 1){ state.searchPage++; renderSearchResults(); } });
+  }
+  box.querySelectorAll('.search-result').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var r = results[parseInt(btn.dataset.i, 10)];
+      openSearchPreview(parseInt(btn.dataset.i, 10));
+    });
+  });
 }
 async function runSearch(term){
+  closeSearchPreview();
+  state.searchTerm = term;
+  state.searchPage = 0;
   var box = $('#searchResult');
   box.innerHTML = '<div class="search-meta">搜索中…</div>';
   var q = term.toLowerCase();
@@ -1596,28 +1799,60 @@ async function runSearch(term){
     if (results.length >= 1500) break;
   }
   if (!box.isConnected) return; /* 面板已关闭 */
-  if (results.length === 0){
-    box.innerHTML = '<div class="empty-hint">未找到「' + esc(term) + '」<br>试试其他关键词</div>';
-    return;
+  state.searchResults = results;
+  pushSearchHistory(term);
+  renderSearchHistory($('#searchHist'));
+  renderSearchResults();
+}
+/* ---------- 搜索预览气泡 ---------- */
+var searchPreviewIndex = -1; /* 当前预览的结果序号 */
+function openSearchPreview(index){
+  var r = state.searchResults[index];
+  if (!r) return;
+  searchPreviewIndex = index;
+  var ci = r.ci, pi = r.pi;
+  var ch = state.chapters[ci];
+  if (!ch) return;
+  var n = settings.searchContextLines || 5;
+  var from = Math.max(0, pi - n);
+  var to = Math.min(ch.paras.length - 1, pi + n);
+  $('#spHead').textContent = '第' + (ci + 1) + '章 · ' + ch.title + '（第 ' + (pi + 1) + ' 段，上下文 ±' + n + ' 行）';
+  var html = '', p;
+  for (p = from; p < pi; p++) html += '<p class="ctx-line">' + esc(ch.paras[p]) + '</p>';
+  html += '<p class="ctx-line hit" data-ci="' + ci + '" data-pi="' + pi + '">' + highlightText(ch.paras[pi], state.searchTerm) + '</p>';
+  for (p = pi + 1; p <= to; p++) html += '<p class="ctx-line">' + esc(ch.paras[p]) + '</p>';
+  $('#searchPreviewBody').innerHTML = html;
+  $('#searchPreview').classList.remove('hidden');
+  $('#spPrevHit').disabled = index <= 0;
+  $('#spNextHit').disabled = index >= state.searchResults.length - 1;
+  var hitEl = $('#searchPreviewBody .ctx-line.hit');
+  if (hitEl) setTimeout(function(){ hitEl.scrollIntoView({ block: 'center' }); }, 30);
+}
+function previewStep(delta){
+  var idx = searchPreviewIndex + delta;
+  if (idx < 0 || idx >= state.searchResults.length) return;
+  openSearchPreview(idx);
+}
+function closeSearchPreview(){
+  $('#searchPreview').classList.add('hidden');
+  searchPreviewIndex = -1;
+}
+function jumpFromSearch(ci, pi){
+  if (!state.searchJumpOrigin){
+    var top = state.pages[state.pageIndex] ? state.pages[state.pageIndex].start : 0;
+    state.searchJumpOrigin = { ci: state.chapterIndex, pi: top };
   }
-  var html = '<div class="search-meta">共 ' + results.length + ' 处匹配（每章最多 20 处）</div>';
-  results.forEach(function(r, i){
-    var ch = state.chapters[r.ci];
-    var p = ch.paras[r.pi];
-    var s = Math.max(0, r.idx - 22), e = Math.min(p.length, r.idx + term.length + 22);
-    var snip = (s > 0 ? '…' : '') + highlightText(p.slice(s, e), term) + (e < p.length ? '…' : '');
-    html += '<button class="search-result" data-i="' + i + '">' +
-            '<div class="ch">第' + (r.ci + 1) + '章 · ' + esc(ch.title) + '</div>' +
-            '<div class="snip">' + snip + '</div>' +
-            '<div class="pi">第 ' + (r.pi + 1) + ' 段</div></button>';
-  });
-  box.innerHTML = html;
-  box.querySelectorAll('.search-result').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var r = results[parseInt(btn.dataset.i, 10)];
-      jumpToParagraph(r.ci, r.pi, term);
-    });
-  });
+  closeSearchPreview();
+  closePanel();
+  jumpToParagraph(ci, pi, state.searchTerm);
+  $('#searchBackBtn').classList.remove('hidden');
+}
+function returnFromSearch(){
+  var o = state.searchJumpOrigin;
+  if (!o) return;
+  state.searchJumpOrigin = null;
+  $('#searchBackBtn').classList.add('hidden');
+  jumpToParagraph(o.ci, o.pi, '');
 }
 var notesTab = 'notes'; /* 笔记面板当前页签：notes | ents */
 var notesPage = 0;      /* 笔记列表当前页 */
@@ -2260,17 +2495,24 @@ function renderFont(body){
   body.innerHTML = fontControlsHTML();
   bindFontControls(body);
 }
+function updateLockSettingsUI(){
+  if (state.panel === 'settings') renderSettings($('#panelBody'));
+}
 function passwordSettingsHTML(){
   var has = !!getPassHash();
-  var html = '<div class="set-row"><label>密码防护' + (has ? '（已开启）' : '（未开启）') + '</label>' +
-    '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+  var html = '<div class="set-row"><label>密码防护' + (has ? '（已设置）' : '（未设置）') + '</label>';
   if (has){
-    html += '<button class="btn-plain" id="setPwChange">修改密码</button>' +
-            '<button class="btn-plain" id="setPwRemove">关闭密码</button>';
+    var btns = '<button class="btn-plain" id="setLockTemp">' + (tempLockOff ? '恢复锁定' : '临时禁用锁定（本次）') + '</button>' +
+               '<button class="btn-plain" id="setPwChange">修改密码</button>' +
+               '<button class="btn-plain" id="setPwRemove">关闭密码（永久禁用）</button>';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 6px">' + btns + '</div>';
+    html += '<label style="font-size:12px;color:var(--muted)">不活跃强制锁定 <span class="val">' + settings.lockIdleMinutes + ' 分钟</span></label>' +
+            '<input type="range" id="setLockIdle" min="1" max="30" step="1" value="' + settings.lockIdleMinutes + '" style="width:100%;margin-top:2px">';
   } else {
-    html += '<button class="btn-plain" id="setPwSet">设置密码</button>';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+            '<button class="btn-plain" id="setPwSet">设置密码</button></div>';
   }
-  html += '</div><div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6">轻量本地锁（非加密）：防止他人随手打开；忘记密码需清除浏览器数据。</div></div>';
+  html += '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6">轻量本地锁（非加密）：防止他人随手打开；忘记密码需清除浏览器数据。「临时禁用」仅本次页面有效，不活跃超时后仍会强制锁定。</div></div>';
   return html;
 }
 function renderSettings(body){
@@ -2297,6 +2539,12 @@ function renderSettings(body){
     '<label class="chk-row"><input type="checkbox" id="setShowNoteTime"' + (settings.showNoteTime ? ' checked' : '') + '> 显示笔记日期</label>' +
     '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6">关闭后，笔记列表中的日期时间不再显示。</div>' +
     '</div>' +
+    '<div class="set-row"><label>搜索上下文行数 <span class="val">' + settings.searchContextLines + ' 行</span></label>' +
+    '<input type="range" id="setSearchCtx" min="1" max="15" step="1" value="' + settings.searchContextLines + '"></div>' +
+    '<div class="set-row"><label>标记默认样式</label>' +
+    '<select id="setMarkStyle">' +
+    MARK_STYLES.map(function(ms){ return '<option value="' + ms.key + '"' + (settings.markStyle === ms.key ? ' selected' : '') + '>' + ms.emoji + ' ' + ms.label + '</option>'; }).join('') +
+    '</select></div>' +
     passwordSettingsHTML() +
     '<div class="set-row"><label>数据备份（标记 + 笔记）</label>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
@@ -2338,11 +2586,30 @@ function renderSettings(body){
     settings.showNoteTime = this.checked;
     applySettings(); saveSettings();
   });
+  $('#setSearchCtx').addEventListener('input', function(){
+    settings.searchContextLines = parseInt(this.value, 10);
+    this.parentElement.querySelector('.val').textContent = settings.searchContextLines + ' 行';
+    saveSettings();
+  });
+  $('#setMarkStyle').addEventListener('change', function(){
+    settings.markStyle = this.value;
+    saveSettings();
+  });
   /* 密码防护 */
   var setPwSet = $('#setPwSet'), setPwChange = $('#setPwChange'), setPwRemove = $('#setPwRemove');
   if (setPwSet) setPwSet.addEventListener('click', function(){ showLock('set', function(){ renderPanel('settings'); }); });
   if (setPwChange) setPwChange.addEventListener('click', function(){ showLock('change', function(){ renderPanel('settings'); }); });
   if (setPwRemove) setPwRemove.addEventListener('click', function(){ showLock('remove', function(){ renderPanel('settings'); }); });
+  var setLockTemp = $('#setLockTemp'), setLockIdle = $('#setLockIdle');
+  if (setLockTemp) setLockTemp.addEventListener('click', function(){
+    tempLockOff = !tempLockOff;
+    renderPanel('settings');
+  });
+  if (setLockIdle) setLockIdle.addEventListener('input', function(){
+    settings.lockIdleMinutes = parseInt(this.value, 10);
+    this.parentElement.querySelector('.val').textContent = settings.lockIdleMinutes + ' 分钟';
+    saveSettings();
+  });
   /* 数据备份 */
   $('#setAnnoExport').addEventListener('click', exportAnnotations);
   $('#setAnnoExportAll').addEventListener('click', exportAllAnnotations);
@@ -2388,12 +2655,35 @@ function renderAbout(body){
 /* ---------- 书库 ---------- */
 function showLibrary(){ $('#library').classList.remove('hidden'); $('#btnCloseLibrary').classList.remove('hidden'); renderLibrary(); }
 function hideLibrary(){ $('#library').classList.add('hidden'); }
-var libPage = 0, libBooks = [];
+var libPage = 0, libBooks = [], libPinned = {};
+/* 置顶书架：hreader.pinned 存书 hash 列表 */
+function getPinnedBooks(){
+  try { var raw = localStorage.getItem('hreader.pinned'); return raw ? JSON.parse(raw) : []; }
+  catch(e){ return []; }
+}
+function savePinnedBooks(list){
+  try { localStorage.setItem('hreader.pinned', JSON.stringify(list)); } catch(e){}
+}
+function togglePinBook(hash){
+  var list = getPinnedBooks();
+  var i = list.indexOf(hash);
+  if (i >= 0) list.splice(i, 1);
+  else list.unshift(hash);
+  savePinnedBooks(list);
+  renderLibrary();
+}
 function renderLibrary(){
   var list = $('#bookList');
   libPage = 0;
   return idbGetAll('books').then(function(books){
-    books.sort(function(a, b){ return (b.addedAt || 0) - (a.addedAt || 0); });
+    var pinned = getPinnedBooks();
+    libPinned = {};
+    pinned.forEach(function(h){ libPinned[h] = true; });
+    books.sort(function(a, b){
+      var pa = libPinned[a.hash] ? 0 : 1, pb = libPinned[b.hash] ? 0 : 1;
+      if (pa !== pb) return pa - pb; /* 置顶在前 */
+      return (b.addedAt || 0) - (a.addedAt || 0);
+    });
     libBooks = books;
     if (books.length === 0){
       list.innerHTML = '<div class="empty-hint">书架还是空的<br>从上方导入第一本小说吧</div>';
@@ -2420,12 +2710,14 @@ function renderLibPage(){
   var list = $('#bookList');
   var html = '';
   page.forEach(function(b){
-    html += '<div class="book-card" data-hash="' + esc(b.hash) + '">' +
+    var isPinned = !!libPinned[b.hash];
+    html += '<div class="book-card' + (isPinned ? ' pinned' : '') + '" data-hash="' + esc(b.hash) + '">' +
             '<div class="book-main">' +
             '<div class="book-title">' + esc(b.title) + '</div>' +
             '<div class="book-meta"><span class="bm-size"></span> · <span class="bm-ch"></span> · <span class="bm-time"></span></div>' +
             '<div class="book-bar"><i style="width:0"></i></div>' +
             '</div>' +
+            '<button class="book-pin' + (isPinned ? ' pinned' : '') + '" title="' + (isPinned ? '取消置顶' : '置顶') + '">📌</button>' +
             '<button class="book-del" title="删除">🗑</button></div>';
   });
   list.innerHTML = html;
@@ -2447,6 +2739,10 @@ function renderLibPage(){
     card.querySelector('.book-main').addEventListener('click', function(){
       hideLibrary();
       openBook(b.hash);
+    });
+    card.querySelector('.book-pin').addEventListener('click', function(e){
+      e.stopPropagation();
+      togglePinBook(b.hash);
     });
     card.querySelector('.book-del').addEventListener('click', function(e){
       e.stopPropagation();
@@ -2765,23 +3061,9 @@ function renderParaHTML(text, term){
 function hideCtxMenu(){
   $('#ctxMenu').classList.add('hidden');
 }
-var pickerPos = null;
 function buildEntityMenuItems(term){
   var items = [];
-  /* 样式行（选择后回写默认样式并原位刷新） */
-  MARK_STYLES.forEach(function(ms){
-    var active = settings.markStyle === ms.key;
-    items.push({
-      html: (active ? '● ' : '') + ms.emoji + ' ' + ms.label,
-      onClick: function(){
-        settings.markStyle = ms.key;
-        saveSettings();
-        if (pickerPos) showCtxMenu(pickerPos.x, pickerPos.y, buildEntityMenuItems(term));
-      }
-    });
-  });
-  items.push({ divider: true });
-  /* 类型行 */
+  /* 类型行（默认样式在设置中指定，可在「修改标记」里单独调整） */
   ENTITY_TYPES.forEach(function(tp){
     items.push({
       html: tp.emoji + ' ' + tp.short,
@@ -2797,7 +3079,6 @@ function buildEntityMenuItems(term){
   return items;
 }
 function showPicker(x, y, term){
-  pickerPos = { x: x, y: y };
   showCtxMenu(x, y, buildEntityMenuItems(term));
 }
 /* 右键菜单：与选中菜单保持一致（复制 / 笔记 / 搜索 / 标记），横排；跨行选区仅复制可用 */
@@ -2877,7 +3158,7 @@ function showCtxMenu(x, y, items, anchorRect){
 }
 
 /* ---------- 自绘选区引擎（Beta：user-select:none + caretRangeFromPoint + 覆盖层高亮） ---------- */
-var customSel = { active: false, anchor: null, range: null, text: '', pi: -1 };
+var customSel = { active: false, anchor: null, range: null, text: '', pi: -1, multi: false };
 
 /* 坐标 → {pi, offset}（三级降级：caretRangeFromPoint → caretPositionFromPoint → 手动命中） */
 function caretAt(x, y){
@@ -3015,6 +3296,7 @@ function clearCustomSel(){
   customSel.range = null;
   customSel.text = '';
   customSel.pi = -1;
+  customSel.multi = false;
   var layer = $('#selLayer');
   if (layer) layer.innerHTML = '';
 }
@@ -3031,6 +3313,7 @@ function setCustomRange(a, b){
   customSel.range = range;
   customSel.text = range.toString();
   customSel.pi = s.pi;
+  customSel.multi = (s.pi !== e.pi); /* 跨段落（跨行） */
   updateSelHighlight();
 }
 function updateSelHighlight(){
@@ -3054,7 +3337,7 @@ function finishCustomSel(){
     var rects = customSel.range.getClientRects();
     if (rects.length) rect = rects[0]; else { clearCustomSel(); return; }
   }
-  showSelMenuFrom(customSel.text, customSel.pi, rect);
+  showSelMenuFrom(customSel.text, customSel.pi, rect, customSel.multi);
 }
 /* 选中坐标处的词（长按 / 双击） */
 function selectWordAt(x, y){
@@ -3069,6 +3352,7 @@ function selectWordAt(x, y){
   customSel.range = range;
   customSel.text = range.toString();
   customSel.pi = c.pi;
+  customSel.multi = false;
   updateSelHighlight();
 }
 
@@ -3103,11 +3387,11 @@ function positionMenuAbove(menu, rect){
   menu.style.top = top + 'px';
   menu.style.transform = below ? 'translate(-50%, 0)' : 'translate(-50%, -100%)';
 }
-function showSelMenuFrom(text, pi, rect){
+function showSelMenuFrom(text, pi, rect, multi){
   hideCtxMenu();
   selText = text;
   selPara = pi;
-  var multi = text.indexOf('\n') !== -1;
+  if (multi === undefined) multi = text.indexOf('\n') !== -1;
   $('#selCopy').disabled = false;
   $('#selNote').disabled = multi;
   $('#selSearch').disabled = multi;
@@ -3174,7 +3458,8 @@ function legacyCopy(text, msg){
 function searchText(term){
   hideSelMenu(); hideCtxMenu();
   if (!term) return;
-  state.highlightTerm = term;
+  state.searchTerm = term;
+  state.searchPage = 0;
   openPanel('search');
   runSearch(term);
 }
@@ -3205,6 +3490,26 @@ function verifyPassword(pw, stored){
   return hashPassword(pw, stored.slice(0, i)) === stored.slice(i + 1);
 }
 var lockMode = 'enter', lockCb = null;
+/* 锁定开关：tempLockOff 为本次会话临时禁用（内存，刷新/重开即失效） */
+var tempLockOff = false;
+var lastActivityAt = Date.now();
+/* 强制上锁（关闭各类面板/弹窗后弹解锁屏） */
+function lockNow(){
+  if (!$('#lockScreen').classList.contains('hidden')) return; /* 已在锁屏 */
+  closePanel(); closeNoteEditor(); closeEntEditor(); closeSearchPreview();
+  hideSelMenu(); hideCtxMenu();
+  showLock('enter', null);
+  if (typeof updateLockSettingsUI === 'function') updateLockSettingsUI();
+}
+/* 切回前台时的上锁判定（临时禁用时仅超时不活跃才锁） */
+function maybeLockOnReturn(){
+  if (!getPassHash()) return;
+  if (!tempLockOff){ lockNow(); return; }
+  if (Date.now() - lastActivityAt >= (settings.lockIdleMinutes || 3) * 60000){
+    tempLockOff = false;
+    lockNow();
+  }
+}
 function showLock(mode, cb){
   lockMode = mode; lockCb = cb || null;
   $('#lockPw0').classList.toggle('hidden', mode === 'set');
@@ -3241,6 +3546,7 @@ function lockSubmit(){
     if (pw.length < 4){ err.textContent = '密码至少 4 位'; return; }
     if (pw !== pw2){ err.textContent = '两次输入的密码不一致'; return; }
     try { localStorage.setItem('hreader.passhash', createStored(pw)); } catch(e){}
+    tempLockOff = false;
     toast('密码已设置');
     finishLock();
   } else if (lockMode === 'change'){
@@ -3254,6 +3560,7 @@ function lockSubmit(){
   } else if (lockMode === 'remove'){
     if (!verifyPassword($('#lockPw0').value, stored)){ err.textContent = '密码错误'; return; }
     try { localStorage.removeItem('hreader.passhash'); } catch(e){}
+    tempLockOff = false;
     toast('密码防护已关闭');
     finishLock();
   }
@@ -3413,23 +3720,12 @@ function wireReaderEvents(){
     finishCustomSel();
   });
   $('#reader').addEventListener('dblclick', function(e){
-    if (!state.book || state.chapterIndex < 0) return;
-    var p = e.target.closest ? e.target.closest('#content p') : null;
-    var m = p && p.id ? /^para-(\d+)$/.exec(p.id) : null;
-    if (!m) return; /* 双击非段落（如章节标题）不处理 */
-    if (e.target.closest && (e.target.closest('.ent') || e.target.closest('.para-badge'))) return;
-    var pi = parseInt(m[1], 10);
-    if (settings.customSel){
-      e.preventDefault();
-      hideSelMenu(); hideCtxMenu();
-      selectWordAt(e.clientX, e.clientY);
-      finishCustomSel();
-      return;
-    }
-    /* 默认模式：双击段落 → 编辑该段无引用笔记 */
+    if (!settings.customSel || !state.book) return;
+    if (e.target.closest && e.target.closest('.ent')) return;
     e.preventDefault();
     hideSelMenu(); hideCtxMenu();
-    openParaNotes(state.chapterIndex, pi, '');
+    selectWordAt(e.clientX, e.clientY);
+    finishCustomSel();
   });
   /* 点击段落末尾笔记徽章 → 打开该段笔记编辑 */
   $('#reader').addEventListener('click', function(e){
@@ -3529,6 +3825,19 @@ function wireReaderEvents(){
   $('#noteModal').addEventListener('keydown', function(e){
     if (e.key === 'Escape'){ e.preventDefault(); closeNoteEditor(); }
   });
+  /* 搜索预览气泡 */
+  $('#searchPreviewClose').addEventListener('click', closeSearchPreview);
+  $('#spPrevHit').addEventListener('click', function(){ previewStep(-1); });
+  $('#spNextHit').addEventListener('click', function(){ previewStep(1); });
+  $('#searchPreview').addEventListener('keydown', function(e){ if (e.key === 'Escape'){ e.preventDefault(); closeSearchPreview(); } });
+  $('#searchPreviewBody').addEventListener('click', function(e){
+    var hit = e.target.closest ? e.target.closest('.ctx-line.hit') : null;
+    if (!hit) return;
+    var ci = parseInt(hit.dataset.ci, 10), pi = parseInt(hit.dataset.pi, 10);
+    if (isNaN(ci) || isNaN(pi)) return;
+    jumpFromSearch(ci, pi);
+  });
+  $('#searchBackBtn').addEventListener('click', returnFromSearch);
   /* 标记编辑弹窗 */
   $('#entSave').addEventListener('click', saveEnt);
   $('#entCancel').addEventListener('click', closeEntEditor);
@@ -3581,18 +3890,33 @@ function wireReaderEvents(){
     if (document.hidden){
       saveProgress();
       state._wasHidden = true;
-    } else {
-      /* 切回前台：已设置密码且当前未在锁屏 → 重新上锁 */
-      if (state._wasHidden && getPassHash() && $('#lockScreen').classList.contains('hidden')){
-        closePanel(); closeNoteEditor(); closeEntEditor();
-        hideSelMenu(); hideCtxMenu();
-        showLock('enter', null);
-      }
+    } else if (state._wasHidden){
       state._wasHidden = false;
+      maybeLockOnReturn();
     }
     hideSelMenu(); hideCtxMenu();
   });
+  /* iOS 等移动端切后台时 visibilitychange 可能不可靠，补充 pagehide/pageshow */
+  window.addEventListener('pagehide', function(){ saveProgress(); state._wasHidden = true; });
+  window.addEventListener('pageshow', function(){
+    if (state._wasHidden){
+      state._wasHidden = false;
+      maybeLockOnReturn();
+    }
+  });
   window.addEventListener('beforeunload', function(){ saveProgress(); });
+  /* 记录最近一次交互时间，供「临时禁用 + 不活跃超时强制锁定」使用 */
+  ['pointerdown','touchstart','mousedown','keydown','wheel'].forEach(function(ev){
+    window.addEventListener(ev, function(){ lastActivityAt = Date.now(); }, { passive: true, capture: true });
+  });
+  /* 前台闲置兜底：临时禁用状态下每 30 秒检查一次是否超时 */
+  setInterval(function(){
+    if (!tempLockOff) return;
+    if (Date.now() - lastActivityAt >= (settings.lockIdleMinutes || 3) * 60000){
+      tempLockOff = false;
+      lockNow();
+    }
+  }, 30000);
 }
 /* ---------- txti 加密文件导入（AES-256-GCM，密钥=SHA-256(密码)，nonce=前12字节） ---------- */
 var TXTI_MAGIC = 'TXTIV1';
@@ -3947,9 +4271,9 @@ function init(){
   registerServiceWorker();
   /* 文件处理仅桌面 Chromium（File System Access API）可用，移动端/不支持的浏览器隐藏入口 */
   if (!fileApiAvailable()) $('#btnFileProc').classList.add('hidden');
-  /* 密码门禁：已设置→输入密码；未设置→先设置密码 */
+  /* 密码门禁：已设置密码 → 输入密码；否则直接进入 */
   if (getPassHash()) showLock('enter', bootApp);
-  else showLock('set', bootApp);
+  else bootApp();
 }
 if (typeof document !== 'undefined') init();
 
