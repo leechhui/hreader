@@ -90,7 +90,7 @@ input,select,textarea{ font-family:inherit; color:inherit; }
 
 /* ================= 阅读区 ================= */
 /* 独立 PWA 下 WebKit 视口高度偏小，JS 会用内联 height 校正真实高度 */
-#app{ height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
+#app{ position:fixed; top:0; left:0; right:0; height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
 /* 应用与书库外壳禁止浏览器接管触摸手势，避免 iOS 橡皮筋滚动导致底栏位移/留白 */
 #app, #app *, #library, #library *{ touch-action:none; }
 #reader{
@@ -1161,14 +1161,14 @@ function isIOS(){
   return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1; /* iPadOS */
 }
 function fitRealViewport(){
-  var root = document.documentElement, body = document.body, app = $('#app'), lib = $('#library');
-  if (!root || !body || !app) return;
+  var app = $('#app'), lib = $('#library');
+  if (!app) return;
   var portrait = window.innerHeight > window.innerWidth;
   var on = isStandalonePWA() && isIOS() && portrait;
   var sh = (on && typeof screen !== 'undefined') ? screen.height : 0;
   var vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
   var h = (sh && sh > vh) ? (sh + 'px') : '';
-  root.style.height = h; body.style.height = h; app.style.height = h;
+  app.style.height = h;
   if (lib) lib.style.height = h;
 }
 
