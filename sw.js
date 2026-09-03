@@ -9,7 +9,7 @@
  *
  * 仅 https / localhost 环境生效；file:// 无法注册 SW。
  * ================================================================ */
-const CACHE_NAME = 'hreader-shell-v1';
+const CACHE_NAME = 'hreader-shell-v2';
 const SHELL = [
   './index.html',
   './manifest.webmanifest',
@@ -48,7 +48,7 @@ self.addEventListener('fetch', function(event){
     event.respondWith(
       fetch(event.request).then(function(res){
         var copy = res.clone();
-        caches.open(CACHE_NAME).then(function(cache){ cache.put('./index.html', copy); });
+        caches.open(CACHE_NAME).then(function(cache){ cache.put(event.request, copy); });
         return res;
       }).catch(function(){
         return caches.match('./index.html');
