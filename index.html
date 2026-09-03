@@ -38,7 +38,7 @@ body[data-theme="dark"]{
   --stripe:rgba(255,255,255,.10);
 }
 *{ box-sizing:border-box; margin:0; padding:0; }
-html,body{ height:100%; overflow:hidden; background:var(--bg); }
+html,body{ height:100%; overflow:hidden; }
 body{
   background:var(--bg); color:var(--fg);
   font-family:var(--font-ui); font-size:15px;
@@ -60,7 +60,7 @@ input,select,textarea{ font-family:inherit; color:inherit; }
 
 /* ================= 顶栏 ================= */
 #topbar{
-  position:relative; flex:none;
+  position:fixed; top:0; left:0; right:0; z-index:30;
   height:48px; height:calc(48px + env(safe-area-inset-top, 0px));
   display:flex; align-items:center; gap:4px;
   padding:0 8px; padding:env(safe-area-inset-top, 0px) 8px 0;
@@ -89,12 +89,13 @@ input,select,textarea{ font-family:inherit; color:inherit; }
 #progressFill{ height:100%; width:0; background:var(--accent); transition:width .3s ease; }
 
 /* ================= 阅读区 ================= */
-/* 独立 PWA 下 WebKit 视口高度偏小，JS 会用内联 height 校正真实高度 */
-#app{ position:fixed; top:0; left:0; right:0; height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
+#app{ height:100vh; height:100dvh; }
 /* 应用与书库外壳禁止浏览器接管触摸手势，避免 iOS 橡皮筋滚动导致底栏位移/留白 */
 #app, #app *, #library, #library *{ touch-action:none; }
 #reader{
-  flex:1; min-height:0;
+  position:fixed; left:0; right:0;
+  top:48px; top:calc(48px + env(safe-area-inset-top, 0px));
+  bottom:50px; bottom:calc(50px + env(safe-area-inset-bottom, 0px));
   padding:22px 16px 40px; touch-action:none; overscroll-behavior:contain;
   overflow:hidden; /* 分页阅读：每页恰好一屏，禁止页内滚动 */
   -webkit-touch-callout:none; /* 禁止 iOS 长按弹系统菜单，避免遮挡自绘菜单 */
@@ -127,7 +128,7 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 
 /* ================= 底栏 ================= */
 #bottombar{
-  flex:none;
+  position:fixed; left:0; right:0; bottom:0; z-index:30;
   height:50px; height:calc(50px + env(safe-area-inset-bottom, 0px));
   display:flex; align-items:center; gap:2px;
   padding:0 6px; padding:0 6px env(safe-area-inset-bottom, 0px);
@@ -475,7 +476,7 @@ body.hide-note-time .tm{ display:none; }
 
 /* ================= 书库（导入） ================= */
 #library{
-  position:fixed; top:0; left:0; right:0; height:100vh; height:100dvh; z-index:50; background:var(--bg);
+  position:fixed; inset:0; z-index:50; background:var(--bg);
   display:flex; flex-direction:column;
   padding-top:env(safe-area-inset-top, 0px);
   padding-bottom:env(safe-area-inset-bottom, 0px);
@@ -1147,31 +1148,6 @@ function applySettings(){
   }
   state._layoutSig = sig;
 }
-/* iOS 独立 PWA：WebKit 把视口高度算得比屏幕矮，底部留白；仅竖屏 iOS 用 screen.height 校正 */
-function isStandalonePWA(){
-  try {
-    if (window.navigator.standalone === true) return true;
-    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
-  } catch(e){}
-  return false;
-}
-function isIOS(){
-  var ua = navigator.userAgent || '';
-  if (/iPhone|iPad|iPod/i.test(ua)) return true;
-  return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1; /* iPadOS */
-}
-function fitRealViewport(){
-  var app = $('#app'), lib = $('#library');
-  if (!app) return;
-  var portrait = window.innerHeight > window.innerWidth;
-  var on = isStandalonePWA() && isIOS() && portrait;
-  var sh = (on && typeof screen !== 'undefined') ? screen.height : 0;
-  var vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
-  var h = (sh && sh > vh) ? (sh + 'px') : '';
-  app.style.height = h;
-  if (lib) lib.style.height = h;
-}
-
 /* ---------- IndexedDB 封装 ---------- */
 var dbPromise = null;
 function openDB(){
@@ -3922,10 +3898,6 @@ function wireReaderEvents(){
       if (state._layoutSig && state._layoutSig !== sig){ state._layoutSig = sig; rebuildPages(); }
     }, 200));
   }
-  /* iOS 独立 PWA：校正真实视口高度（底部留白修复） */
-  window.addEventListener('resize', function(){ fitRealViewport(); });
-  if (window.visualViewport) window.visualViewport.addEventListener('resize', function(){ fitRealViewport(); });
-  window.addEventListener('orientationchange', function(){ setTimeout(fitRealViewport, 300); });
   /* 离开页面时保存进度 */
   document.addEventListener('visibilitychange', function(){
     if (document.hidden){
@@ -4320,7 +4292,6 @@ function recordAppVersion(){
 }
 function init(){
   applySettings();
-  fitRealViewport();
   recordAppVersion();
   var vEl = $('#appVersion');
   if (vEl) vEl.textContent = 'v' + APP_VERSION;
