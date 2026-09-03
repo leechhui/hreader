@@ -4001,11 +4001,12 @@ async function encryptTxtiWithKeyHex(content, name, hex){
   var key = await aesKeyFromHex(hex, ['encrypt']);
   return encryptTxtiWithKey(content, name, key);
 }
-async function walkFiles(dirHandle, txts, txtis){
+async function walkFiles(dirHandle, txts, txtis, prefix){
+  prefix = prefix || '';
   for await (var entry of dirHandle.values()){
-    if (entry.kind === 'directory'){ await walkFiles(entry, txts, txtis); }
-    else if (/\.txt$/i.test(entry.name)){ txts.push({ handle: entry, dir: dirHandle }); }
-    else if (/\.txti$/i.test(entry.name)){ txtis.push({ handle: entry, dir: dirHandle }); }
+    if (entry.kind === 'directory'){ await walkFiles(entry, txts, txtis, prefix + entry.name + '/'); }
+    else if (/\.txt$/i.test(entry.name)){ txts.push({ handle: entry, dir: dirHandle, rel: prefix + entry.name }); }
+    else if (/\.txti$/i.test(entry.name)){ txtis.push({ handle: entry, dir: dirHandle, rel: prefix + entry.name }); }
   }
 }
 function openFileProcModal(){
@@ -4048,6 +4049,7 @@ async function runFileProc(){
   if (doDec) txtis.forEach(function(f){ tasks.push({ kind: 'dec', f: f }); });
   if (!tasks.length){ result.textContent = '该文件夹下没有可处理的 txt / txti 文件'; btn.disabled = false; btn.textContent = '选择文件夹并处理'; return; }
   var ok = 0, fail = 0, lines = [];
+  var manifest = []; /* 加密映射：原文件名 → md5 文件名 */
   for (var i = 0; i < tasks.length; i++){
     var t = tasks[i];
     result.textContent = '处理中 ' + (i + 1) + '/' + tasks.length + '：' + t.f.handle.name;
@@ -4070,6 +4072,7 @@ async function runFileProc(){
         var w2 = await out.createWritable();
         await w2.write(data);
         await w2.close();
+        manifest.push({ from: t.f.rel, to: outName });
         lines.push('加密 ' + t.f.handle.name + ' → ' + outName);
         ok++;
       } else {
@@ -4086,6 +4089,19 @@ async function runFileProc(){
     } catch(e){
       fail++;
       lines.push('失败 ' + t.f.handle.name + '：' + (e && e.message ? e.message : e));
+    }
+  }
+  /* 生成文件名对照清单（非加密）：原文件名 → md5 文件名 */
+  if (manifest.length){
+    try {
+      var manifestText = manifest.map(function(m){ return m.from + ' → ' + m.to; }).join('\n') + '\n';
+      var mf = await dirHandle.getFileHandle('清单.txt', { create: true });
+      var mw = await mf.createWritable();
+      await mw.write(manifestText);
+      await mw.close();
+      lines.push('已生成清单：清单.txt（' + manifest.length + ' 条映射）');
+    } catch(e){
+      lines.push('生成清单失败：' + (e && e.message ? e.message : e));
     }
   }
   result.textContent = '完成：成功 ' + ok + '，失败 ' + fail + '\n' + lines.slice(0, 300).join('\n');
