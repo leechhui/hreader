@@ -1147,7 +1147,7 @@ function applySettings(){
   }
   state._layoutSig = sig;
 }
-/* iOS 独立 PWA：WebKit 把视口高度算得比屏幕矮，底部留白；用 screen.height 校正真实高度 */
+/* iOS 独立 PWA：WebKit 把视口高度算得比屏幕矮，底部留白；仅竖屏 iOS 用 screen.height 校正 */
 function isStandalonePWA(){
   try {
     if (window.navigator.standalone === true) return true;
@@ -1155,19 +1155,21 @@ function isStandalonePWA(){
   } catch(e){}
   return false;
 }
+function isIOS(){
+  var ua = navigator.userAgent || '';
+  if (/iPhone|iPad|iPod/i.test(ua)) return true;
+  return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1; /* iPadOS */
+}
 function fitRealViewport(){
   var root = document.documentElement, body = document.body, app = $('#app'), lib = $('#library');
   if (!root || !body || !app) return;
-  if (!isStandalonePWA()){
-    root.style.height = ''; body.style.height = ''; app.style.height = ''; if (lib) lib.style.height = '';
-    return;
-  }
-  var sh = (typeof screen !== 'undefined') ? screen.height : 0;
-  if (!sh || sh <= 0) return;
-  root.style.height = sh + 'px';
-  body.style.height = sh + 'px';
-  app.style.height = sh + 'px';
-  if (lib) lib.style.height = sh + 'px';
+  var portrait = window.innerHeight > window.innerWidth;
+  var on = isStandalonePWA() && isIOS() && portrait;
+  var sh = (on && typeof screen !== 'undefined') ? screen.height : 0;
+  var vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+  var h = (sh && sh > vh) ? (sh + 'px') : '';
+  root.style.height = h; body.style.height = h; app.style.height = h;
+  if (lib) lib.style.height = h;
 }
 
 /* ---------- IndexedDB 封装 ---------- */
@@ -3923,7 +3925,7 @@ function wireReaderEvents(){
   /* iOS 独立 PWA：校正真实视口高度（底部留白修复） */
   window.addEventListener('resize', function(){ fitRealViewport(); });
   if (window.visualViewport) window.visualViewport.addEventListener('resize', function(){ fitRealViewport(); });
-  window.addEventListener('orientationchange', function(){ setTimeout(fitRealViewport, 60); });
+  window.addEventListener('orientationchange', function(){ setTimeout(fitRealViewport, 300); });
   /* 离开页面时保存进度 */
   document.addEventListener('visibilitychange', function(){
     if (document.hidden){
