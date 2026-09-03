@@ -89,7 +89,7 @@ input,select,textarea{ font-family:inherit; color:inherit; }
 #progressFill{ height:100%; width:0; background:var(--accent); transition:width .3s ease; }
 
 /* ================= 阅读区 ================= */
-#app{ height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
+#app{ position:fixed; inset:0; display:flex; flex-direction:column; overflow:hidden; }
 #reader{
   flex:1; min-height:0;
   padding:22px 16px 40px; touch-action:none; overscroll-behavior:contain;
@@ -1119,7 +1119,9 @@ function saveSettings(){
   try { localStorage.setItem('hreader.settings', JSON.stringify(settings)); } catch(e){}
 }
 function layoutSignature(){
-  return [settings.fontFamily, settings.fontSize, settings.lineHeight, settings.letterSpacing, settings.paraSpacing, window.innerWidth, window.innerHeight].join('|');
+  var vw = window.innerWidth, vh = window.innerHeight;
+  if (window.visualViewport){ vw = window.visualViewport.width; vh = window.visualViewport.height; }
+  return [settings.fontFamily, settings.fontSize, settings.lineHeight, settings.letterSpacing, settings.paraSpacing, vw, vh].join('|');
 }
 function debounce(fn, ms){
   var t = null;
@@ -3885,6 +3887,14 @@ function wireReaderEvents(){
     var sig = layoutSignature();
     if (state._layoutSig && state._layoutSig !== sig){ state._layoutSig = sig; rebuildPages(); }
   }, 200));
+  /* iOS 地址栏收展 / 可视视口变化 → 重新分页 */
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', debounce(function(){
+      if (!state.book) return;
+      var sig = layoutSignature();
+      if (state._layoutSig && state._layoutSig !== sig){ state._layoutSig = sig; rebuildPages(); }
+    }, 200));
+  }
   /* 离开页面时保存进度 */
   document.addEventListener('visibilitychange', function(){
     if (document.hidden){
