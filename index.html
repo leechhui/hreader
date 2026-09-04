@@ -734,7 +734,7 @@ body.custom-sel #content, body.custom-sel #content p{
   input, select, textarea{ font-size:16px !important; }
 }
 @media (max-width:560px){
-  #reader{ padding:18px 14px 34px; }
+  #reader{ padding:calc(18px + env(safe-area-inset-top, 0px)) 14px calc(34px + env(safe-area-inset-bottom, 0px)); }
   #content p{ text-align:left; }
 }
 </style>
@@ -4738,17 +4738,32 @@ function bootApp(){
 function registerServiceWorker(){
   if (!('serviceWorker' in navigator)) return;
   if (location.protocol === 'file:') return; /* file:// 不支持 SW */
-  navigator.serviceWorker.register('./sw.js').then(function(reg){
+  var hadController = !!navigator.serviceWorker.controller;
+  var announced = false;
+  function announceUpdate(){
+    if (announced) return;
+    announced = true;
+    toast('已更新到新版本，正在刷新…');
+  }
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function(reg){
+    /* 主动检查更新：规避浏览器对 SW 脚本的 24 小时更新节流（桌面端常见“不更新”） */
+    function check(){ if (reg) reg.update(); }
+    document.addEventListener('visibilitychange', function(){ if (!document.hidden) check(); });
+    check();
     reg.addEventListener('updatefound', function(){
       var newSW = reg.installing;
       if (!newSW) return;
       newSW.addEventListener('statechange', function(){
-        if (newSW.state === 'installed' && navigator.serviceWorker.controller){
-          toast('有新版本，刷新页面即可更新');
-        }
+        if (newSW.state === 'installed' && navigator.serviceWorker.controller) announceUpdate();
       });
     });
+    if (reg.waiting && navigator.serviceWorker.controller) announceUpdate();
   }).catch(function(e){ console.warn('Service Worker 注册失败：', e); });
+  /* 新 SW 通过 skipWaiting + clients.claim 接管当前页后自动刷新，让新版本立即生效（首次安装不刷新） */
+  navigator.serviceWorker.addEventListener('controllerchange', function(){
+    if (!hadController){ hadController = true; return; }
+    location.reload();
+  });
 }
 /* 记录并显示版本号：为后续版本迭代/数据迁移埋点 */
 function recordAppVersion(){
