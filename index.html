@@ -21,7 +21,6 @@
       --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
       --font-read: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
       --app-h: 100dvh;
-      --kb-offset: 0px;
     }
 
     body[data-theme="light"] {
@@ -265,13 +264,7 @@
       height: var(--app-h);
     }
 
-    /* 应用与书库外壳禁止浏览器接管触摸手势，避免 iOS 橡皮筋滚动导致底栏位移/留白 */
-    #app,
-    #app *,
-    #library,
-    #library * {
-      touch-action: none;
-    }
+    /* 避免全局禁用触摸行为影响输入框与键盘联动，手势控制只放在阅读区 */
 
     #reader {
       position: fixed;
@@ -361,8 +354,6 @@
       align-items: center;
       gap: 2px;
       padding: 0 6px;
-      padding: 0 6px constant(safe-area-inset-bottom, 0px);
-      padding: 0 6px env(safe-area-inset-bottom, 0px);
       background: var(--bg2);
       border-top: 1px solid var(--line);
     }
@@ -2611,6 +2602,11 @@
       var t = null;
       return function () { var a = arguments; clearTimeout(t); t = setTimeout(function () { fn.apply(null, a); }, ms); };
     }
+    var IS_IOS = /iP(ad|hone|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1);
+    function isStandaloneMode() {
+      var m = window.matchMedia ? window.matchMedia('(display-mode: standalone)') : null;
+      return !!((m && m.matches) || navigator.standalone);
+    }
     /* iOS PWA 键盘兼容：以 visualViewport 为准更新视口高度，并切换键盘态样式 */
     var viewportBaseHeight = 0;
     function syncViewportForKeyboard() {
@@ -2619,9 +2615,8 @@
       if (!viewportBaseHeight || height > viewportBaseHeight) viewportBaseHeight = height;
       var offsetTop = vv ? Math.max(0, Math.round(vv.offsetTop || 0)) : 0;
       var kb = vv ? Math.max(0, Math.round(viewportBaseHeight - (height + offsetTop))) : 0;
-      var keyboardOpen = kb > 120;
+      var keyboardOpen = IS_IOS && isStandaloneMode() && kb > 120;
       document.documentElement.style.setProperty('--app-h', height + 'px');
-      document.documentElement.style.setProperty('--kb-offset', (keyboardOpen ? kb : 0) + 'px');
       document.body.classList.toggle('keyboard-open', keyboardOpen);
     }
     function applySettings() {
