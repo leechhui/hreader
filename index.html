@@ -96,6 +96,8 @@
       inset: 0;
       width: 100%;
       overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: none;
     }
 
     button {
@@ -2669,7 +2671,7 @@
       var offsetTop = vv ? Math.max(0, Math.round(vv.offsetTop || 0)) : 0;
       var orientation = (height >= width) ? 'portrait' : 'landscape';
       var base = viewportBaseByOrientation[orientation] || 0;
-      if (!base || height > base) base = height;
+      if (!base || Math.max(height, innerH) > base) base = Math.max(height, innerH);
       viewportBaseByOrientation[orientation] = base;
       var kb = vv ? Math.max(0, Math.round(base - (height + offsetTop))) : 0;
       var standaloneIOS = syncStandaloneFlags();
@@ -2677,8 +2679,8 @@
       var keyboardOpen = standaloneIOS && focused && kb > 90;
       var appHeight;
       if (standaloneIOS) {
-        /* 关键：键盘收起后始终回到 innerHeight，避免残留错误高度造成底部留白 */
-        appHeight = keyboardOpen ? height : innerH;
+        /* 键盘关闭时固定到当前方向的最大基线，避免橡皮筋拖动导致高度波动与底部留白 */
+        appHeight = keyboardOpen ? height : base;
       } else {
         appHeight = vv ? height : innerH;
       }
@@ -5472,7 +5474,11 @@
           var sig = layoutSignature();
           if (state._layoutSig && state._layoutSig !== sig) { state._layoutSig = sig; rebuildPages(); }
         }, 200));
-        window.visualViewport.addEventListener('scroll', debounce(syncViewportForKeyboard, 60));
+        window.visualViewport.addEventListener('scroll', debounce(function () {
+          /* iOS 主屏幕下，非输入态的 scroll 多为橡皮筋位移，忽略以避免 app-h 被拖动值污染 */
+          if (IS_IOS && isStandaloneMode() && !isEditableFocused() && !document.body.classList.contains('keyboard-open')) return;
+          syncViewportForKeyboard();
+        }, 60));
       }
       document.addEventListener('focusin', function () { setTimeout(syncViewportForKeyboard, 30); });
       document.addEventListener('focusout', function () { setTimeout(syncViewportForKeyboard, 120); });
