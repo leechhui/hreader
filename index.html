@@ -132,14 +132,15 @@ body.show-title #topTitleWrap{ display:block; }
   white-space:pre-wrap; word-break:break-word;
   text-indent:2em;
   border-radius:4px; transition:background .2s;
-  position:relative; padding-right:1.3em; /* 右侧常驻留白，供段落末尾笔记徽章（绝对定位）使用 */
+  position:relative; padding-right:1.1em; /* 右侧常驻留白，供段落末尾笔记徽章（绝对定位）使用 */
 }
 #content p.flash{ background:var(--mark); }
 mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 /* 段落末尾笔记徽章（带圈数字 ①-⑳）：绝对定位在段落右下角留白槽内，脱离文本流，避免引起重排 */
 .para-badge{
   position:absolute; right:0.1em; bottom:0.1em;
-  width:1.2em; height:1.2em; line-height:1.2em; text-align:center;
+  width:1em; height:1em; line-height:1em; text-align:center;
+  z-index:35; /* 高于悬浮球(34)，窄屏时不被悬浮球遮挡 */
   color:var(--accent); cursor:pointer; user-select:none; -webkit-user-select:none;
   -webkit-touch-callout:none;
   font-size:1em; font-weight:700;
@@ -1481,7 +1482,7 @@ function buildPages(paras, budget){
     p.style.whiteSpace = 'pre-wrap';
     p.style.wordBreak = 'break-word';
     p.style.textAlign = 'justify';
-    p.style.paddingRight = '1.3em'; /* 与 #content p 的 padding-right 保持一致，否则测高偏短导致页面溢出 */
+    p.style.paddingRight = '1.1em'; /* 与 #content p 的 padding-right 保持一致，否则测高偏短导致页面溢出 */
     m.appendChild(p);
     return p.offsetHeight + settings.paraSpacing * settings.fontSize; /* 高度 + 段落下边距 */
   }
@@ -2604,6 +2605,7 @@ function buildAnnotationsPayload(){
     bookHash: state.book.hash,
     bookTitle: state.book.title,
     chapterPattern: patternForBook(state.book),
+    tags: (state.book.tags || []).slice(),
     exportedAt: new Date().toISOString(),
     notes: notes.map(function(n){
       return { chapterTitle: n.chapterTitle, ci: n.ci, pi: n.pi, line: n.line, quote: n.quote || '', text: n.text, createdAt: n.createdAt };
@@ -2623,6 +2625,15 @@ function noteCiForBook(chapters, titleToCi, n){
   if (typeof n.ci === 'number' && n.ci >= 0 && n.ci < chapters.length) return n.ci;
   if (n.chapterTitle && titleToCi[n.chapterTitle] !== undefined) return titleToCi[n.chapterTitle];
   return -1;
+}
+/* 合并标签：并集去重 + 清洗（去 # 前缀、单条 ≤20 字、总量 ≤8 个） */
+function mergeTags(existing, incoming){
+  var out = (existing || []).slice();
+  (incoming || []).forEach(function(t){
+    t = String(t).trim().replace(/^#/, '');
+    if (t && t.length <= 20 && out.indexOf(t) === -1) out.push(t);
+  });
+  return out.slice(0, 8);
 }
 async function mergeBookAnnotations(book, notesArr, entitiesArr){
   var split = splitChapters(book.text, patternForBook(book));
@@ -2705,11 +2716,14 @@ function importAnnotationsData(data){
     try { new RegExp(applyPattern, 'm'); } catch(e){ toast('导入数据的分章正则无效：' + e.message); return; }
     state.book.chapterPattern = applyPattern;
   }
-  var persist = applyPattern ? idbPut('books', state.book).catch(function(){}) : Promise.resolve();
+  var applyTags = Array.isArray(data.tags) ? data.tags : null;
+  if (applyTags) state.book.tags = mergeTags([], applyTags);
+  var persist = (applyPattern || applyTags) ? idbPut('books', state.book).catch(function(){}) : Promise.resolve();
   persist.then(function(){
     return mergeBookAnnotations(state.book, data.notes, data.entities);
   }).then(function(counts){
-    var msg = '已合并：笔记 ' + counts.notes + ' 条 · 标记 ' + counts.ents + ' 个' + (applyPattern ? '；已套用备份的分章正则' : '');
+    var msg = '已合并：笔记 ' + counts.notes + ' 条 · 标记 ' + counts.ents + ' 个' +
+      (applyPattern ? '；已套用分章正则' : '') + (applyTags ? '；已更新标签' : '');
     if (applyPattern) return openBook(state.book.hash).then(function(){ toast(msg); });
     return refreshAnnotationsUI().then(function(){ toast(msg); });
   }).catch(function(e){ toast('导入失败：' + e.message); });
@@ -2725,6 +2739,7 @@ async function exportAllAnnotations(){
       bookHash: b.hash,
       bookTitle: b.title,
       chapterPattern: patternForBook(b),
+      tags: (b.tags || []).slice(),
       notes: notes.map(function(n){ return { chapterTitle: n.chapterTitle, ci: n.ci, pi: n.pi, line: n.line, quote: n.quote || '', text: n.text, createdAt: n.createdAt }; }),
       entities: entities.map(function(e){ return { term: e.term, type: e.type, color: e.color, style: e.style || 'wavy', createdAt: e.createdAt }; })
     });
@@ -2742,11 +2757,17 @@ async function importAllAnnotationsData(data){
     if (!b || !b.bookHash) continue;
     var book = await idbGet('books', b.bookHash);
     if (!book){ missing++; continue; }
+    var bookChanged = false;
     if (typeof b.chapterPattern === 'string' && b.chapterPattern.trim()){
       book.chapterPattern = b.chapterPattern.trim();
-      await idbPut('books', book).catch(function(){});
+      bookChanged = true;
       if (state.book && state.book.hash === book.hash) currentPatternChanged = true;
     }
+    if (Array.isArray(b.tags)){
+      book.tags = mergeTags(book.tags, b.tags); /* 标签：并集去重 */
+      bookChanged = true;
+    }
+    if (bookChanged) await idbPut('books', book).catch(function(){});
     var counts = await mergeBookAnnotations(book, b.notes, b.entities);
     doneBooks++; totalNotes += counts.notes; totalEnts += counts.ents;
     if (state.book && state.book.hash === book.hash) hitCurrent = true;
@@ -2895,7 +2916,7 @@ function renderSettings(body){
     '<button class="btn-plain" id="setAnnoExportAll">复制全部</button>' +
     '<button class="btn-plain" id="setAnnoImport">导入合并</button>' +
     '</div>' +
-    '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6">「复制本书」导出当前书的标记+笔记+分章正则；「复制全部」导出书库所有书的标记+笔记+分章正则（含 bookHash，跨设备按内容匹配合并）；导入时按引用/标记词去重，并套用备份里的分章正则。</div>' +
+    '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6">「复制本书」导出当前书的标记+笔记+分章正则+标签；「复制全部」导出书库所有书的标记+笔记+分章正则+标签（含 bookHash，跨设备按内容匹配合并）；导入时按引用/标记词去重，套用备份里的分章正则，标签按并集去重合并。</div>' +
     '</div>' +
     '<div class="set-row" style="text-align:right"><button class="btn-plain" id="setReset">恢复默认设置</button></div>';
   $('#setPatternApply').addEventListener('click', function(){
@@ -4043,14 +4064,44 @@ function wireLockScreen(){
   $('#lockScreen').addEventListener('keydown', function(e){ if (e.key === 'Enter' && !isImeComposing(e)) lockSubmit(); });
 }
 
+/* 是否有任意弹窗/侧栏/菜单处于打开状态（用于 Esc 回首页判断） */
+function isOverlayOpen(){
+  function open(id){ var el = $(id); return el && !el.classList.contains('hidden'); }
+  if (open('#modalOverlay') || open('#entOverlay') || open('#tagOverlay') || open('#txtiOverlay') ||
+      open('#annoOverlay') || open('#clipOverlay') || open('#impOverlay') || open('#fpOverlay') ||
+      open('#searchPreview') || open('#selMenu') || open('#ctxMenu') || open('#lockScreen')) return true;
+  var drawer = $('#drawer');
+  return !!(drawer && drawer.classList.contains('open'));
+}
 /* ---------- 初始化与事件 ---------- */
 function wireReaderEvents(){
   /* 键盘 */
   document.addEventListener('keydown', function(e){
     var t = e.target;
     if (t && t.matches && t.matches('input, textarea, select')) return;
-    if (e.key === 'Escape'){ closePanel(); closeNoteEditor(); closeEntEditor(); hideSelMenu(); hideCtxMenu(); return; }
+    var k = (e.key || '').toLowerCase();
+    if (e.key === 'Escape'){
+      if (e.defaultPrevented) return; /* 弹窗自身已处理 Esc（关闭弹窗） */
+      if (isOverlayOpen()){
+        closePanel(); closeNoteEditor(); closeEntEditor(); hideSelMenu(); hideCtxMenu();
+        closeSearchPreview(); closeTagEditor(); hideTxtiModal(); hideAnnoModal(); hideClipModal(); hideImpModal(); hideFileProcModal();
+        return;
+      }
+      if ($('#library') && !$('#library').classList.contains('hidden')){
+        if (getPassHash()) lockNow(); /* 已在首页：有密码则上锁 */
+        return;
+      }
+      showLibrary(); /* 无弹窗 → 回首页 */
+      return;
+    }
+    if (k === 'q'){ /* q：书架（无需打开书） */
+      if ($('#library') && $('#library').classList.contains('hidden')) showLibrary();
+      return;
+    }
     if (!state.book) return;
+    if (k === 'l'){ openPanel('toc'); return; }
+    else if (k === 'f'){ openPanel('search'); return; }
+    else if (k === 'n'){ openPanel('notes'); return; }
     if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp'){ e.preventDefault(); prevPage(); }
     else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown'){ e.preventDefault(); nextPage(); }
     else if (e.key === 'Home'){ e.preventDefault(); jumpToChapter(0, false); }
