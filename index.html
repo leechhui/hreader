@@ -89,6 +89,15 @@
       overscroll-behavior: none;
     }
 
+    /* iOS 主屏幕模式：锁定根容器，避免页面整体被上下橡皮筋拖动 */
+    html.ios-standalone,
+    body.ios-standalone {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      overflow: hidden;
+    }
+
     button {
       font-family: inherit;
       cursor: pointer;
@@ -1829,6 +1838,23 @@
       transform: translateX(-50%) translateY(0);
     }
 
+    /* 视口调试角标：用于排查 iOS PWA 键盘/留白问题 */
+    #vvDebugBadge {
+      position: fixed;
+      right: 8px;
+      top: 8px;
+      z-index: 999;
+      max-width: min(88vw, 360px);
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, .75);
+      color: #fff;
+      font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: pre-wrap;
+      pointer-events: none;
+      opacity: .92;
+    }
+
     /* 密码锁屏 */
     #lockScreen {
       position: fixed;
@@ -2391,6 +2417,7 @@
   </div>
 
   <div id="toast"></div>
+  <div id="vvDebugBadge" class="hidden"></div>
 
   <script>
     'use strict';
@@ -2602,10 +2629,30 @@
       var t = null;
       return function () { var a = arguments; clearTimeout(t); t = setTimeout(function () { fn.apply(null, a); }, ms); };
     }
+    var DEBUG_VIEWPORT_BADGE = true;
+    function updateViewportDebug(info) {
+      var el = $('#vvDebugBadge');
+      if (!el) return;
+      if (!DEBUG_VIEWPORT_BADGE) { el.classList.add('hidden'); return; }
+      var lines = [
+        'mode=' + info.mode + ' focus=' + (info.focus ? 1 : 0) + ' kbd=' + (info.keyboardOpen ? 1 : 0),
+        'in=' + info.innerH + ' vv=' + info.vvH + ' top=' + info.offsetTop,
+        'base=' + info.base + ' kb=' + info.kb + ' app=' + info.appH,
+        'ori=' + info.orientation + ' vvW=' + info.vvW
+      ];
+      el.textContent = lines.join('\n');
+      el.classList.remove('hidden');
+    }
     var IS_IOS = /iP(ad|hone|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1);
     function isStandaloneMode() {
       var m = window.matchMedia ? window.matchMedia('(display-mode: standalone)') : null;
       return !!((m && m.matches) || navigator.standalone);
+    }
+    function syncStandaloneFlags() {
+      var on = IS_IOS && isStandaloneMode();
+      document.documentElement.classList.toggle('ios-standalone', on);
+      document.body.classList.toggle('ios-standalone', on);
+      return on;
     }
     function isEditableFocused() {
       var el = document.activeElement;
@@ -2618,16 +2665,41 @@
       var vv = window.visualViewport;
       var width = vv ? Math.round(vv.width) : window.innerWidth;
       var height = vv ? Math.round(vv.height) : window.innerHeight;
+      var innerH = Math.round(window.innerHeight);
       var offsetTop = vv ? Math.max(0, Math.round(vv.offsetTop || 0)) : 0;
       var orientation = (height >= width) ? 'portrait' : 'landscape';
       var base = viewportBaseByOrientation[orientation] || 0;
       if (!base || height > base) base = height;
       viewportBaseByOrientation[orientation] = base;
       var kb = vv ? Math.max(0, Math.round(base - (height + offsetTop))) : 0;
-      var keyboardOpen = IS_IOS && isStandaloneMode() && isEditableFocused() && kb > 90;
-      var appHeight = (keyboardOpen || !vv) ? height : Math.max(window.innerHeight, Math.round(vv.height + offsetTop));
+      var standaloneIOS = syncStandaloneFlags();
+      var focused = isEditableFocused();
+      var keyboardOpen = standaloneIOS && focused && kb > 90;
+      var appHeight;
+      if (standaloneIOS) {
+        /* 关键：键盘收起后始终回到 innerHeight，避免残留错误高度造成底部留白 */
+        appHeight = keyboardOpen ? height : innerH;
+      } else {
+        appHeight = vv ? height : innerH;
+      }
       document.documentElement.style.setProperty('--app-h', appHeight + 'px');
       document.body.classList.toggle('keyboard-open', keyboardOpen);
+      if (standaloneIOS && !keyboardOpen) {
+        try { window.scrollTo(0, 0); } catch (e) { }
+      }
+      updateViewportDebug({
+        mode: standaloneIOS ? 'ios-standalone' : 'normal',
+        focus: focused,
+        keyboardOpen: keyboardOpen,
+        innerH: innerH,
+        vvH: height,
+        vvW: width,
+        offsetTop: offsetTop,
+        base: base,
+        kb: kb,
+        appH: appHeight,
+        orientation: orientation
+      });
     }
     function applySettings() {
       document.body.dataset.theme = settings.theme;
