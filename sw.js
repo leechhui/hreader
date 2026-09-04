@@ -9,7 +9,7 @@
  *
  * 仅 https / localhost 环境生效；file:// 无法注册 SW。
  * ================================================================ */
-const CACHE_NAME = 'hreader-shell-v14';
+const CACHE_NAME = 'hreader-shell-v15';
 const SHELL = [
   './index.html',
   './manifest.webmanifest',
