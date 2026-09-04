@@ -58,45 +58,14 @@ input,select,textarea{ font-family:inherit; color:inherit; }
 *::-webkit-scrollbar-thumb{ background:var(--muted); border-radius:3px; }
 *::-webkit-scrollbar-thumb:hover{ background:var(--fg); }
 
-/* ================= 顶栏 ================= */
-#topbar{
-  position:fixed; top:0; left:0; right:0; z-index:30;
-  height:48px; height:calc(48px + env(safe-area-inset-top, 0px));
-  display:flex; align-items:center; gap:4px;
-  padding:0 8px; padding:env(safe-area-inset-top, 0px) 8px 0;
-  background:var(--bg2); border-bottom:1px solid var(--line);
-}
-#topbar .icon-btn{
-  flex:none; width:38px; height:38px; border-radius:8px;
-  display:inline-flex; align-items:center; justify-content:center;
-  color:var(--fg); position:relative;
-}
-#topbar .icon-btn:hover{ background:var(--accent-soft); }
-#topbar .icon-btn svg{ width:21px; height:21px; }
-#titleWrap{ flex:1; min-width:0; text-align:center; line-height:1.15; padding:0 4px; }
-#bookTitle{
-  display:block; font-size:14px; font-weight:600;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-#chapterPos{ display:block; font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-#topActions{ flex:none; display:flex; align-items:center; gap:2px; }
-#noteBadge{
-  position:absolute; top:2px; right:2px; min-width:15px; height:15px; padding:0 3px;
-  border-radius:8px; background:var(--accent); color:#fff; font-size:10px; line-height:15px;
-  text-align:center; display:none;
-}
-#progressBar{ position:absolute; left:0; right:0; bottom:-1px; height:2px; background:transparent; }
-#progressFill{ height:100%; width:0; background:var(--accent); transition:width .3s ease; }
-
 /* ================= 阅读区 ================= */
 #app{ height:100vh; height:100dvh; }
 /* 应用与书库外壳禁止浏览器接管触摸手势，避免 iOS 橡皮筋滚动导致底栏位移/留白 */
 #app, #app *, #library, #library *{ touch-action:none; }
 #reader{
-  position:fixed; left:0; right:0;
-  top:48px; top:calc(48px + env(safe-area-inset-top, 0px));
-  bottom:0;
-  padding:22px 16px calc(28px + env(safe-area-inset-bottom, 0px)); touch-action:none; overscroll-behavior:contain;
+  position:fixed; left:0; right:0; top:0; bottom:0;
+  padding:calc(22px + env(safe-area-inset-top, 0px)) 16px calc(28px + env(safe-area-inset-bottom, 0px));
+  touch-action:none; overscroll-behavior:contain;
   overflow:hidden; /* 分页阅读：每页恰好一屏，禁止页内滚动 */
   -webkit-touch-callout:none; /* 禁止 iOS 长按弹系统菜单，避免遮挡自绘菜单 */
 }
@@ -105,6 +74,54 @@ input,select,textarea{ font-family:inherit; color:inherit; }
   font-family:var(--font-read);
   -webkit-touch-callout:none;
 }
+/* 顶部书名（可选显示，占位下推正文，用 hr 分隔） */
+#topTitleWrap{ display:none; max-width:720px; margin:0 auto; }
+body.show-title #topTitleWrap{ display:block; }
+#topTitle{
+  padding:2px 0 10px;
+  font-size:13px; font-weight:600; text-align:center; color:var(--fg);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#topTitleWrap hr{
+  border:0; height:1px; background:var(--line); margin:0 0 16px;
+}
+/* 底部信息条：章节名 + 嵌套进度条 */
+#cleanBar{
+  position:fixed; left:0; right:0; bottom:0; z-index:32;
+  padding:0 14px calc(8px + env(safe-area-inset-bottom, 0px));
+  pointer-events:none;
+}
+#cleanBar .ch-name{
+  font-size:11px; color:var(--muted); opacity:.75; text-align:center;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:3px;
+}
+#cleanBar .prog-track{
+  position:relative; height:3px; border-radius:2px; background:var(--line); overflow:hidden;
+}
+#cleanBar .prog-track i{
+  position:absolute; left:0; top:0; bottom:0; width:0; background:var(--accent);
+  transition:width .3s ease;
+}
+#cleanBar .prog-track i.upper{ opacity:.45; }
+/* 悬浮球 + 菜单 */
+#fab{
+  position:fixed; right:14px; bottom:calc(64px + env(safe-area-inset-bottom, 0px)); z-index:34;
+  width:46px; height:46px; border-radius:50%; background:var(--accent); color:#fff;
+  font-size:19px; box-shadow:0 4px 16px var(--shadow);
+  display:flex; align-items:center; justify-content:center;
+  touch-action:none;
+}
+#fab:active{ opacity:.85; }
+#fabMenu{
+  position:fixed; z-index:35; min-width:150px; padding:6px;
+  background:var(--bg2); border:1px solid var(--line); border-radius:12px;
+  box-shadow:0 8px 24px var(--shadow);
+}
+#fabMenu button{
+  display:block; width:100%; text-align:left; padding:9px 12px;
+  border-radius:8px; font-size:13px; color:var(--fg);
+}
+#fabMenu button:hover{ background:var(--accent-soft); }
 .chapter-title{
   font-size:1.3em; font-weight:700; text-align:center;
   margin:6px 0 22px; letter-spacing:.05em;
@@ -115,14 +132,17 @@ input,select,textarea{ font-family:inherit; color:inherit; }
   white-space:pre-wrap; word-break:break-word;
   text-indent:2em;
   border-radius:4px; transition:background .2s;
+  position:relative; padding-right:1.3em; /* 右侧常驻留白，供段落末尾笔记徽章（绝对定位）使用 */
 }
 #content p.flash{ background:var(--mark); }
 mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
-/* 段落末尾笔记徽章（带圈数字 ①-⑳） */
+/* 段落末尾笔记徽章（带圈数字 ①-⑳）：绝对定位在段落右下角留白槽内，脱离文本流，避免引起重排 */
 .para-badge{
-  color:var(--accent); cursor:pointer; user-select:none;
-  margin-left:6px; font-size:1em; font-weight:700;
-  display:inline-block; vertical-align:middle; transform:translateY(-0.1em);
+  position:absolute; right:0.1em; bottom:0.1em;
+  width:1.2em; height:1.2em; line-height:1.2em; text-align:center;
+  color:var(--accent); cursor:pointer; user-select:none; -webkit-user-select:none;
+  -webkit-touch-callout:none;
+  font-size:1em; font-weight:700;
 }
 .para-badge:hover{ opacity:.8; }
 
@@ -130,12 +150,12 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 
 /* ================= 抽屉面板 ================= */
 #drawerOverlay{
-  position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.4);
+  position:fixed; inset:0; z-index:52; background:rgba(0,0,0,.4);
   opacity:0; pointer-events:none; transition:opacity .22s;
 }
 #drawerOverlay.show{ opacity:1; pointer-events:auto; }
 #drawer{
-  position:fixed; top:0; right:0; bottom:0; z-index:41; width:min(340px,88vw);
+  position:fixed; top:0; right:0; bottom:0; z-index:53; width:min(340px,88vw);
   background:var(--bg2); border-left:1px solid var(--line);
   box-shadow:-8px 0 24px var(--shadow);
   transform:translateX(102%); transition:transform .24s ease;
@@ -226,7 +246,7 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 #searchPreview{
   position:fixed; right:calc(min(340px, 88vw) + 16px); top:50%; transform:translateY(-50%);
   width:min(560px, calc(100vw - min(340px, 88vw) - 32px));
-  height:78vh; z-index:51;
+  height:78vh; z-index:54; /* 高于抽屉遮罩(52)/抽屉(53)，低于弹窗(60) */
   background:var(--bg2); border:1px solid var(--line); border-radius:14px;
   box-shadow:0 12px 40px var(--shadow);
   display:flex; flex-direction:column; padding:16px;
@@ -319,6 +339,28 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
   flex:1; min-height:0; overflow-y:auto; overflow-x:hidden;
   -webkit-overflow-scrolling:touch; padding:0 2px 12px;
 }
+/* 笔记搜索 */
+.note-search{ flex:none; display:flex; gap:6px; margin-bottom:8px; }
+.note-search input{
+  flex:1; min-width:0; height:34px; padding:0 10px; font-size:13px;
+  border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg);
+}
+.note-search button{
+  flex:none; width:34px; height:34px; border-radius:8px; font-size:13px;
+  border:1px solid var(--line); color:var(--muted); background:var(--bg);
+}
+.note-search button.hidden{ display:none; }
+#notesPager{ flex:none; }
+.notes-result-count{ font-size:12px; color:var(--muted); margin:2px 2px 8px; }
+.note-search-item{
+  padding:8px 10px; margin-bottom:6px; cursor:pointer; border-radius:8px;
+  border-left:2px solid var(--accent); background:var(--bg);
+}
+.note-search-item:hover{ background:var(--accent-soft); }
+.note-search-item .q{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.note-search-item .q.muted{ opacity:.6; font-style:italic; }
+.note-search-item .t{ font-size:14px; margin-top:2px; word-break:break-word; }
+.note-search-item .tm{ font-size:10px; color:var(--muted); opacity:.72; margin-top:3px; }
 .notes-pager{
   flex:none; display:flex; align-items:center; justify-content:center; gap:12px;
   padding:8px 0 calc(10px + env(safe-area-inset-bottom, 0px));
@@ -427,10 +469,6 @@ body.hide-note-time .tm{ display:none; }
   width:100%; height:38px; padding:0 10px; font-size:14px;
   border:1px solid var(--line); border-radius:8px; background:var(--bg);
 }
-#topbar .aa-mark{
-  font-family:Georgia, "Times New Roman", serif;
-  font-size:16px; font-weight:700; letter-spacing:-1px;
-}
 .set-row textarea{
   width:100%; min-height:64px; padding:8px 10px; font-size:13px; line-height:1.5;
   border:1px solid var(--line); border-radius:8px; background:var(--bg); resize:vertical;
@@ -479,6 +517,15 @@ body.hide-note-time .tm{ display:none; }
 .shelf-head{ flex:none; display:flex; align-items:baseline; justify-content:space-between; margin-bottom:6px; }
 .shelf-head h2{ font-size:14px; color:var(--muted); font-weight:600; }
 .shelf-count{ font-size:12px; color:var(--muted); }
+.shelf-filter{ flex:none; display:flex; gap:6px; margin-bottom:8px; }
+.shelf-filter input{
+  flex:1; min-width:0; height:32px; padding:0 10px; font-size:13px;
+  border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg);
+}
+.shelf-filter select{
+  flex:none; max-width:140px; height:32px; padding:0 6px; font-size:12px;
+  border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg);
+}
 #bookList{ flex:1; min-height:0; overflow:hidden; }
 .pager{ flex:none; display:flex; align-items:center; justify-content:center; gap:12px; padding:8px 0 2px; }
 .pager button{ height:30px; padding:0 14px; border-radius:7px; border:1px solid var(--line); font-size:13px; }
@@ -514,7 +561,8 @@ body.hide-note-time .tm{ display:none; }
 }
 .book-main{ flex:1; min-width:0; cursor:pointer; }
 .book-title{ font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.book-meta{ font-size:11px; color:var(--muted); margin-top:3px; }
+.book-meta{ font-size:11px; color:var(--muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.book-tag{ font-size:10px; color:var(--accent); background:var(--accent-soft); border-radius:4px; padding:1px 5px; margin-right:3px; }
 .book-bar{ height:3px; background:var(--line); border-radius:2px; margin-top:6px; overflow:hidden; }
 .book-bar i{ display:block; height:100%; background:var(--accent); }
 .book-del{
@@ -528,6 +576,24 @@ body.hide-note-time .tm{ display:none; }
 .book-pin:hover{ background:var(--accent-soft); }
 .book-pin.pinned{ color:var(--accent); }
 .book-card.pinned{ box-shadow:inset 3px 0 0 var(--accent); }
+.book-tag-edit{
+  flex:none; width:34px; height:34px; border-radius:8px; font-size:14px; color:var(--muted);
+}
+.book-tag-edit:hover{ background:var(--accent-soft); }
+
+/* 书籍标签编辑弹窗 */
+#tagChips{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 12px; min-height:28px; }
+.tag-chip{
+  display:inline-flex; align-items:center; gap:5px;
+  padding:4px 8px; border-radius:12px; background:var(--accent-soft); color:var(--accent); font-size:13px;
+}
+.tag-chip button{
+  width:16px; height:16px; border-radius:50%; font-size:10px; line-height:16px;
+  background:transparent; color:var(--muted); border:0; cursor:pointer;
+}
+.tag-chip button:hover{ background:rgba(0,0,0,.1); color:#c0392b; }
+#tagDone{ background:var(--accent); color:#fff; }
+#tagCancel{ border:1px solid var(--line); }
 
 /* ================= 弹窗（笔记编辑） ================= */
 .modal{
@@ -558,6 +624,16 @@ body.hide-note-time .tm{ display:none; }
 #fpCancel{ border:1px solid var(--line); }
 #clipOk{ background:var(--accent); color:#fff; }
 #clipCancel{ border:1px solid var(--line); }
+#impOk{ background:var(--accent); color:#fff; }
+#impCancel{ border:1px solid var(--line); }
+/* 导入预览：分章列表 */
+.imp-summary{ font-size:12px; color:var(--muted); margin:2px 0 6px; }
+.imp-list{ max-height:40vh; overflow:auto; border:1px solid var(--line); border-radius:8px; background:var(--bg); }
+.imp-item{ display:flex; align-items:baseline; gap:8px; padding:5px 10px; font-size:13px; }
+.imp-item + .imp-item{ border-top:1px solid var(--line); }
+.imp-item .no{ flex:none; width:26px; text-align:right; color:var(--muted); font-size:11px; }
+.imp-item .ti{ flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.imp-item .cnt{ flex:none; color:var(--muted); font-size:11px; }
 #clipContent{ height:150px; }
 .fp-result{
   max-height:130px; overflow:auto; font-size:12px; color:var(--muted);
@@ -565,7 +641,7 @@ body.hide-note-time .tm{ display:none; }
   background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:6px 8px;
 }
 #modalOverlay{ position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.45); }
-#entOverlay, #txtiOverlay, #annoOverlay, #clipOverlay, #fpOverlay{ position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.45); }
+#entOverlay, #txtiOverlay, #annoOverlay, #clipOverlay, #fpOverlay, #impOverlay, #tagOverlay{ position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.45); }
 
 /* Toast */
 #toast{
@@ -660,49 +736,27 @@ body.custom-sel #content, body.custom-sel #content p{
 @media (max-width:560px){
   #reader{ padding:18px 14px 34px; }
   #content p{ text-align:left; }
-  #topbar .icon-btn{ width:34px; height:34px; }
-  .hide-mobile{ display:none !important; }
-  #bookTitle{ font-size:13px; }
 }
 </style>
 </head>
 <body data-theme="light">
 
 <div id="app">
-  <header id="topbar">
-    <button id="btnLibrary" class="icon-btn" title="书库" aria-label="书库">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h14v17H6a2 2 0 0 0-2 2V5z"/><path d="M4 5v14"/><path d="M8 7h8"/><path d="M8 11h8"/></svg>
-    </button>
-    <div id="titleWrap">
-      <span id="bookTitle">简读</span>
-      <span id="chapterPos"></span>
-    </div>
-    <div id="topActions">
-      <button id="btnToc" class="icon-btn" title="目录" aria-label="目录">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
-      </button>
-      <button id="btnSearch" class="icon-btn" title="全文搜索" aria-label="全文搜索">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
-      </button>
-      <button id="btnNotes" class="icon-btn" title="笔记" aria-label="笔记">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6V3z"/><path d="M14 3v5h5"/><path d="M9 12h6M9 16h6"/></svg>
-        <span id="noteBadge">0</span>
-      </button>
-      <button id="btnFont" class="icon-btn" title="字体调整" aria-label="字体调整">
-        <span class="aa-mark">Aa</span>
-      </button>
-      <button id="btnSettings" class="icon-btn" title="设置" aria-label="设置">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.4"/><circle cx="8" cy="17" r="2.4"/></svg>
-      </button>
-      <button id="btnAbout" class="icon-btn hide-mobile" title="关于" aria-label="关于">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5v.5"/></svg>
-      </button>
-    </div>
-    <div id="progressBar"><div id="progressFill"></div></div>
-  </header>
-
-  <main id="reader" class="scroll"><div id="content"></div></main>
+  <main id="reader" class="scroll">
+    <div id="topTitleWrap"><div id="topTitle"></div><hr></div>
+    <div id="content"></div>
+  </main>
 </div>
+
+<!-- 底部章节名 + 嵌套进度条 -->
+<div id="cleanBar">
+  <div class="ch-name" id="cleanChName"></div>
+  <div class="prog-track"><i id="cpBook"></i><i id="cpPage" class="upper"></i></div>
+</div>
+
+<!-- 悬浮球 + 菜单 -->
+<button id="fab" title="菜单" aria-label="菜单">☰</button>
+<div id="fabMenu" class="hidden"></div>
 
 <!-- 抽屉面板 -->
 <div id="drawerOverlay"></div>
@@ -745,6 +799,10 @@ body.custom-sel #content, body.custom-sel #content p{
       <div class="shelf-head">
         <h2>我的书架</h2>
         <span class="shelf-count" id="shelfCount"></span>
+      </div>
+      <div class="shelf-filter">
+        <input id="libNameFilter" type="text" placeholder="按书名过滤…" spellcheck="false">
+        <select id="libTagFilter"><option value="">全部标签</option></select>
       </div>
       <div id="bookList"></div>
       <div class="pager hidden" id="pager">
@@ -867,6 +925,47 @@ body.custom-sel #content, body.custom-sel #content p{
   </div>
 </div>
 
+<!-- 导入预览弹窗（分章确认/调整） -->
+<div id="impOverlay" class="hidden"></div>
+<div id="impModal" class="modal hidden">
+  <h3>导入预览</h3>
+  <div class="ent-field"><label>书名</label><input id="impName" placeholder="书名"></div>
+  <div class="ent-field">
+    <label>章节正则</label>
+    <div style="display:flex;gap:6px">
+      <input id="impPattern" style="flex:1" spellcheck="false" placeholder="章节标题匹配正则">
+      <button id="impResplit" class="btn-plain">重新分章</button>
+    </div>
+  </div>
+  <div class="imp-summary" id="impSummary"></div>
+  <div class="imp-list" id="impList"></div>
+  <div class="lock-err" id="impErr"></div>
+  <div class="modal-actions">
+    <button id="impCancel">取消</button>
+    <button id="impOk">确认导入</button>
+  </div>
+</div>
+
+<!-- 书籍标签编辑弹窗 -->
+<div id="tagOverlay" class="hidden"></div>
+<div id="tagModal" class="modal hidden">
+  <h3>编辑标签</h3>
+  <div class="ctx" id="tagCtx"></div>
+  <div id="tagChips"></div>
+  <div class="ent-field">
+    <label>添加标签</label>
+    <div style="display:flex;gap:6px">
+      <input id="tagInput" placeholder="输入标签后回车添加" style="flex:1">
+      <button id="tagAdd" class="btn-plain">添加</button>
+    </div>
+  </div>
+  <div class="lock-err" id="tagErr"></div>
+  <div class="modal-actions">
+    <button id="tagCancel">取消</button>
+    <button id="tagDone">完成</button>
+  </div>
+</div>
+
 <!-- 选中文本工具菜单 -->
 <div id="selLayer"></div>
 <div id="selMenu" class="hidden">
@@ -947,7 +1046,8 @@ var DEFAULT_SETTINGS = {
   showNoteTime: true,
   searchContextLines: 5,
   markStyle: 'line',
-  lockIdleMinutes: 3
+  lockIdleMinutes: 3,
+  showBookTitle: false
 };
 /* 正文字体（字族）选项 */
 var FONT_FAMILIES = [
@@ -1099,7 +1199,7 @@ function saveSettings(){
 function layoutSignature(){
   var vw = window.innerWidth, vh = window.innerHeight;
   if (window.visualViewport){ vw = window.visualViewport.width; vh = window.visualViewport.height; }
-  return [settings.fontFamily, settings.fontSize, settings.lineHeight, settings.letterSpacing, settings.paraSpacing, vw, vh].join('|');
+  return [settings.fontFamily, settings.fontSize, settings.lineHeight, settings.letterSpacing, settings.paraSpacing, settings.showBookTitle ? 1 : 0, vw, vh].join('|');
 }
 function debounce(fn, ms){
   var t = null;
@@ -1115,12 +1215,85 @@ function applySettings(){
   void $('#content').offsetWidth; /* 强制重排：iOS 切换字体后立即生效 */
   document.body.classList.toggle('custom-sel', !!settings.customSel);
   document.body.classList.toggle('hide-note-time', !settings.showNoteTime);
+  document.body.classList.toggle('show-title', !!settings.showBookTitle);
   /* 版式/视口变化时重新分页 */
   var sig = layoutSignature();
   if (state.book && state._layoutSig && state._layoutSig !== sig){
     rebuildPages();
   }
   state._layoutSig = sig;
+}
+/* ---------- 悬浮球 ---------- */
+function hideFabMenu(){
+  $('#fabMenu').classList.add('hidden');
+}
+function openFabMenu(){
+  var items = [
+    { label: '📚 书库', fn: function(){ hideFabMenu(); showLibrary(); } },
+    { label: '📖 目录', fn: function(){ hideFabMenu(); openPanel('toc'); } },
+    { label: '🔍 搜索', fn: function(){ hideFabMenu(); openPanel('search'); } },
+    { label: '📝 笔记', fn: function(){ hideFabMenu(); openPanel('notes'); } },
+    { label: '🎨 外观', fn: function(){ hideFabMenu(); openPanel('font'); } },
+    { label: '⚙️ 设置', fn: function(){ hideFabMenu(); openPanel('settings'); } },
+    { label: 'ℹ️ 关于', fn: function(){ hideFabMenu(); openPanel('about'); } }
+  ];
+  var menu = $('#fabMenu');
+  var html = '';
+  items.forEach(function(it, i){ html += '<button data-i="' + i + '">' + esc(it.label) + '</button>'; });
+  menu.innerHTML = html;
+  menu.classList.remove('hidden');
+  menu.querySelectorAll('button').forEach(function(btn){
+    btn.addEventListener('click', function(){ items[parseInt(btn.dataset.i, 10)].fn(); });
+  });
+  var fab = $('#fab');
+  var fr = fab.getBoundingClientRect();
+  var mw = menu.offsetWidth, mh = menu.offsetHeight;
+  var x = Math.min(Math.max(8, fr.right - mw), window.innerWidth - mw - 8);
+  var y = fr.top - mh - 8;
+  if (y < 8) y = fr.bottom + 8;
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+}
+var fabMoved = false, fabDrag = null;
+function fabDown(x, y){
+  var fab = $('#fab');
+  var r = fab.getBoundingClientRect();
+  fabMoved = false;
+  fabDrag = { sx: x, sy: y, ox: r.left, oy: r.top };
+}
+function fabMove(x, y){
+  if (!fabDrag) return;
+  var dx = x - fabDrag.sx, dy = y - fabDrag.sy;
+  if (!fabMoved && Math.abs(dx) + Math.abs(dy) > 8) fabMoved = true;
+  if (!fabMoved) return;
+  var fab = $('#fab');
+  var nx = Math.min(Math.max(fabDrag.ox + dx, 8), window.innerWidth - fab.offsetWidth - 8);
+  var ny = Math.min(Math.max(fabDrag.oy + dy, 8), window.innerHeight - fab.offsetHeight - 8);
+  fab.style.left = nx + 'px'; fab.style.top = ny + 'px';
+  fab.style.right = 'auto'; fab.style.bottom = 'auto';
+  hideFabMenu();
+}
+function fabUp(){ fabDrag = null; }
+function initFab(){
+  var fab = $('#fab');
+  fab.addEventListener('touchstart', function(e){ fabDown(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  fab.addEventListener('touchmove', function(e){ fabMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  fab.addEventListener('touchend', fabUp);
+  fab.addEventListener('mousedown', function(e){ e.preventDefault(); fabDown(e.clientX, e.clientY); });
+  document.addEventListener('mousemove', function(e){ fabMove(e.clientX, e.clientY); });
+  document.addEventListener('mouseup', fabUp);
+  fab.addEventListener('click', function(){
+    if (fabMoved){ fabMoved = false; return; }
+    var menu = $('#fabMenu');
+    if (menu.classList.contains('hidden')) openFabMenu();
+    else hideFabMenu();
+  });
+  document.addEventListener('click', function(e){
+    var menu = $('#fabMenu');
+    if (menu.classList.contains('hidden')) return;
+    if (menu.contains(e.target) || $('#fab').contains(e.target)) return;
+    hideFabMenu();
+  });
 }
 /* ---------- IndexedDB 封装 ---------- */
 var dbPromise = null;
@@ -1216,27 +1389,34 @@ function splitChapters(text, pattern){
   catch(e){ throw new Error('章节正则无效：' + e.message); }
   text = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
   var lines = text.split('\n');
-  var chapters = [], current = null, leading = [];
+  var chapters = [], current = null, leading = [], leadingLines = [];
   for (var i = 0; i < lines.length; i++){
     var raw = lines[i];
     var line = raw.trim();
     if (line === '') continue;
     if (re.test(line)){
-      current = { title: line, paras: [] };
+      current = { title: line, paras: [], paraLines: [] };
       chapters.push(current);
     } else if (current){
       current.paras.push(raw);
+      current.paraLines.push(i);
     } else {
       leading.push(raw);
+      leadingLines.push(i);
     }
   }
   if (chapters.length === 0){
     /* 未匹配到章节：整本作为一章 */
-    var all = leading;
-    if (all.length === 0) all = lines.filter(function(l){ return l.trim() !== ''; });
-    chapters = [{ title: '全文', paras: all }];
+    var all = leading, allLines = leadingLines;
+    if (all.length === 0){
+      all = []; allLines = [];
+      for (var k = 0; k < lines.length; k++){
+        if (lines[k].trim() !== ''){ all.push(lines[k]); allLines.push(k); }
+      }
+    }
+    chapters = [{ title: '全文', paras: all, paraLines: allLines }];
   } else if (leading.length > 0){
-    chapters.unshift({ title: '前言', paras: leading });
+    chapters.unshift({ title: '前言', paras: leading, paraLines: leadingLines });
   }
   /* 去掉空章节（只有标题没有正文）；若全部为空则保留结构，避免整本消失 */
   var nonEmpty = chapters.filter(function(ch){ return ch.paras.length > 0; });
@@ -1272,6 +1452,10 @@ function buildPages(paras, budget){
   var content = $('#content');
   var cs = getComputedStyle(reader);
   var avail = reader.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  if (document.body.classList.contains('show-title')){
+    var titleWrap = document.getElementById('topTitleWrap');
+    if (titleWrap && titleWrap.offsetHeight) avail -= titleWrap.offsetHeight;
+  }
   avail = Math.max(140, avail - 6); /* 预留余量，避免浮点误差导致滚动 */
   var m = document.createElement('div');
   m.style.cssText = 'position:absolute;left:-99999px;top:0;visibility:hidden;pointer-events:none;';
@@ -1296,6 +1480,8 @@ function buildPages(paras, budget){
     p.style.textIndent = '2em';
     p.style.whiteSpace = 'pre-wrap';
     p.style.wordBreak = 'break-word';
+    p.style.textAlign = 'justify';
+    p.style.paddingRight = '1.3em'; /* 与 #content p 的 padding-right 保持一致，否则测高偏短导致页面溢出 */
     m.appendChild(p);
     return p.offsetHeight + settings.paraSpacing * settings.fontSize; /* 高度 + 段落下边距 */
   }
@@ -1350,19 +1536,71 @@ var state = {
   entityRe: null,
   entityLookup: {},
   titleToCi: {},
+  lineToCiPi: {},      /* 原文行号 -> {ci,pi}（笔记按行号锚定的回映射表） */
   panel: '',
   _layoutSig: ''
 };
 
+/* ---------- 每本书的分章正则：优先用书自带，回退全局默认 ---------- */
+function patternForBook(book){
+  return (book && book.chapterPattern) || settings.chapterPattern || DEFAULT_CHAPTER_PATTERN;
+}
+
 /* ---------- 导入 ---------- */
-async function importText(name, text){
+async function importText(name, text, pattern){
   var hash = await sha256Hex(text);
   await idbPut('books', {
-    hash: hash, title: name, text: text, size: text.length, addedAt: Date.now(), version: APP_VERSION
+    hash: hash, title: name, text: text, size: text.length, addedAt: Date.now(), version: APP_VERSION,
+    chapterPattern: pattern || settings.chapterPattern, tags: []
   });
   await openBook(hash);
   toast('导入成功：' + name);
   hideLibrary();
+}
+/* ---------- 导入预览：先分章 → 弹窗展示章节列表 → 可调整 → 确认后常规导入 ---------- */
+var impText = null;
+function previewImport(name, text){
+  impText = text;
+  hideSelMenu(); hideCtxMenu();
+  $('#impName').value = name || '';
+  $('#impPattern').value = settings.chapterPattern;
+  impResplit();
+  $('#impOverlay').classList.remove('hidden');
+  $('#impModal').classList.remove('hidden');
+  setTimeout(function(){ $('#impName').focus(); }, 50);
+}
+function impResplit(){
+  if (!impText) return;
+  var pat = $('#impPattern').value.trim();
+  if (!pat){ $('#impErr').textContent = '章节正则不能为空'; $('#impList').innerHTML = ''; $('#impSummary').textContent = ''; return; }
+  var split;
+  try { split = splitChapters(impText, pat); }
+  catch(e){ $('#impErr').textContent = e.message; $('#impList').innerHTML = ''; $('#impSummary').textContent = ''; return; }
+  $('#impErr').textContent = '';
+  var chapters = split.chapters;
+  var html = '';
+  var totalLines = 0;
+  chapters.forEach(function(ch, i){
+    totalLines += ch.paras.length;
+    html += '<div class="imp-item"><span class="no">' + (i + 1) + '</span><span class="ti">' + esc(ch.title) + '</span><span class="cnt">' + ch.chars + ' 字 · ' + ch.paras.length + ' 行</span></div>';
+  });
+  $('#impList').innerHTML = html;
+  $('#impSummary').textContent = '共 ' + chapters.length + ' 章 · ' + split.totalChars + ' 字 · ' + totalLines + ' 行';
+}
+function hideImpModal(){
+  $('#impOverlay').classList.add('hidden');
+  $('#impModal').classList.add('hidden');
+  impText = null;
+}
+function impOk(){
+  if (!impText){ hideImpModal(); return; }
+  var name = $('#impName').value.trim() || '未命名';
+  var pat = $('#impPattern').value.trim();
+  if (!pat){ $('#impErr').textContent = '章节正则不能为空'; return; }
+  try { new RegExp(pat, 'm'); } catch(e){ $('#impErr').textContent = '章节正则无效：' + e.message; return; }
+  var text = impText;
+  hideImpModal();
+  importText(name, text, pat);
 }
 function readFileAsBuffer(file){
   return new Promise(function(resolve, reject){
@@ -1411,7 +1649,7 @@ async function importUrl(){
           toast('该链接返回的是网页而不是 txt 文本，无法导入（若为网盘分享页，请先下载到本地）');
           return;
         }
-        await importText(guessNameFromUrl(url), text);
+        previewImport(guessNameFromUrl(url), text);
         $('#urlInput').value = '';
         return;
       } catch(e){ /* 尝试下一个目标 */ }
@@ -1426,7 +1664,7 @@ async function importUrl(){
 function openBook(hash){
   return idbGet('books', hash).then(function(book){
     if (!book) return;
-    var split = splitChapters(book.text, settings.chapterPattern);
+    var split = splitChapters(book.text, patternForBook(book));
     state.book = book;
     state.chapters = split.chapters;
     state.totalChars = split.totalChars;
@@ -1437,7 +1675,16 @@ function openBook(hash){
       acc += state.chapters[i].chars;
     }
     state.titleToCi = {};
-    for (i = 0; i < state.chapters.length; i++) state.titleToCi[state.chapters[i].title] = i;
+    state.lineToCiPi = {};
+    for (i = 0; i < state.chapters.length; i++){
+      state.titleToCi[state.chapters[i].title] = i;
+      var ch = state.chapters[i];
+      if (ch.paraLines){
+        for (var p = 0; p < ch.paras.length; p++){
+          state.lineToCiPi[ch.paraLines[p]] = { ci: i, pi: p };
+        }
+      }
+    }
     localStorage.setItem('hreader.lastBook', hash);
     return loadNotesMap().then(loadEntitiesMap).then(function(){
       return idbGet('progress', hash);
@@ -1461,10 +1708,16 @@ function loadNotesMap(){
   if (!state.book) return Promise.resolve();
   return idbGetByIndex('notes', 'book', state.book.hash).then(function(notes){
     var map = {};
-    notes.forEach(function(n){ map[n.id] = n; });
+    var migrations = [];
+    notes.forEach(function(n){
+      if (typeof n.line !== 'number') migrations.push(migrateNote(n)); /* 旧版迁移 */
+      resolveNoteCiPi(n); /* 按行号回映射 ci/pi（含当前章标题） */
+      map[n.id] = n;
+    });
     state.notesMap = map;
     notesPage = 0;
     updateNoteBadge();
+    return Promise.all(migrations);
   });
 }
 function deleteBook(hash){
@@ -1509,11 +1762,8 @@ function render(){
   var ci = state.chapterIndex;
   var ch = state.chapters[ci];
   var page = state.pages[state.pageIndex];
-  $('#bookTitle').textContent = state.book.title;
   var totalPages = state.pages.length;
   var percent = computePercent();
-  var pg = totalPages > 1 ? '第 ' + (state.pageIndex + 1) + '/' + totalPages + ' 页 · ' : '';
-  $('#chapterPos').textContent = '第 ' + (ci + 1) + '/' + state.chapters.length + ' 章 · ' + pg + percent + '%';
   var html = state.pageIndex === 0 ? '<h2 class="chapter-title">' + esc(ch.title) + '</h2>' : '';
   for (var pi = page.start; pi <= page.end; pi++){
     var count = paraNoteCount(ci, pi);
@@ -1521,7 +1771,12 @@ function render(){
     html += '<p id="para-' + pi + '">' + renderParaHTML(ch.paras[pi], state.highlightTerm) + badge + '</p>';
   }
   $('#content').innerHTML = html;
-  $('#progressFill').style.width = percent + '%';
+  /* 顶部书名（可选） + 底部章节名 + 双层进度 */
+  $('#topTitle').textContent = state.book.title;
+  $('#cleanChName').textContent = ch.title;
+  $('#cpBook').style.width = percent + '%';
+  var pagePct = totalPages > 0 ? Math.round((state.pageIndex + 1) / totalPages * 100) : 100;
+  $('#cpPage').style.width = pagePct + '%';
   $('#reader').scrollTop = 0;
   saveProgress();
 }
@@ -1621,7 +1876,7 @@ function renderPanel(name){
   var body = $('#panelBody');
   body.classList.remove('notes-panel');
   body.classList.remove('search-panel');
-  var titles = { toc:'目录', search:'全文搜索', notes:'笔记', font:'字体调整', settings:'设置', about:'关于' };
+  var titles = { toc:'目录', search:'全文搜索', notes:'笔记', font:'外观', settings:'设置', about:'关于' };
   $('#panelTitle').textContent = titles[name] || '面板';
   if (name === 'toc') renderToc(body);
   else if (name === 'search') renderSearch(body);
@@ -1831,6 +2086,7 @@ function returnFromSearch(){
 }
 var notesTab = 'notes'; /* 笔记面板当前页签：notes | ents */
 var notesPage = 0;      /* 笔记列表当前页 */
+var notesSearchTerm = ''; /* 笔记搜索词（仅笔记页签） */
 var NOTES_PAGE_SIZE = 15; /* 每页段落块数 */
 function renderNotes(body){
   if (!state.book){ body.innerHTML = '<div class="empty-hint">还没有书籍</div>'; return; }
@@ -1848,23 +2104,50 @@ function renderNotes(body){
   });
   var tabBody = $('#notesTabBody');
   if (notesTab === 'ents') renderEntsList(tabBody);
-  else renderNotesList(tabBody);
+  else renderNotesTab(tabBody);
 }
-function renderNotesList(box){
+function renderNotesTab(tabBody){
+  tabBody.innerHTML =
+    '<div class="note-search">' +
+      '<input id="noteSearchInput" type="text" placeholder="搜索笔记 / 引用内容…" value="' + esc(notesSearchTerm) + '">' +
+      '<button id="noteSearchClear" title="清除"' + (notesSearchTerm ? '' : ' class="hidden"') + '>✕</button>' +
+    '</div>' +
+    '<div class="export-bar">' +
+      '<select id="exportFmt" title="导出格式">' +
+      '<option value="md">Markdown</option>' +
+      '<option value="txt">纯文本</option>' +
+      '<option value="json">JSON</option></select>' +
+      '<button id="btnExportNotes">导出笔记</button></div>' +
+    '<div id="notesListBody" class="notes-list scroll"></div>' +
+    '<div id="notesPager"></div>';
+  var input = $('#noteSearchInput');
+  var clearBtn = $('#noteSearchClear');
+  input.addEventListener('input', function(){
+    notesSearchTerm = input.value.trim();
+    clearBtn.classList.toggle('hidden', !notesSearchTerm);
+    renderNotesListBody();
+  });
+  clearBtn.addEventListener('click', function(){
+    notesSearchTerm = '';
+    input.value = '';
+    clearBtn.classList.add('hidden');
+    renderNotesListBody();
+    input.focus();
+  });
+  $('#btnExportNotes').addEventListener('click', exportNotes);
+  renderNotesListBody();
+}
+function renderNotesListBody(){
+  var box = $('#notesListBody');
+  var pager = $('#notesPager');
   var notes = [];
   Object.keys(state.notesMap).forEach(function(k){ notes.push(state.notesMap[k]); });
-  var toolbar = '<div class="export-bar">' +
-    '<select id="exportFmt" title="导出格式">' +
-    '<option value="md">Markdown</option>' +
-    '<option value="txt">纯文本</option>' +
-    '<option value="json">JSON</option></select>' +
-    '<button id="btnExportNotes">导出笔记</button></div>';
   if (notes.length === 0){
-    box.innerHTML = toolbar +
-      '<div class="notes-list scroll"><div class="empty-hint">暂无笔记<br><br>选中文本后<b>右键 / 长按</b><br>即可添加笔记（含引用）</div></div>';
-    $('#btnExportNotes').addEventListener('click', exportNotes);
+    box.innerHTML = '<div class="empty-hint">暂无笔记<br><br>选中文本后<b>右键 / 长按</b><br>即可添加笔记（含引用）</div>';
+    pager.innerHTML = '';
     return;
   }
+  if (notesSearchTerm){ renderNotesSearchResults(box, notes); pager.innerHTML = ''; return; }
   var groups = groupNotesByPara(notes);
   /* 展平为段落块：分页按“段落块”计数（而非按章计数），避免一章内大量段落挤在同一页 */
   var blocks = [];
@@ -1877,7 +2160,7 @@ function renderNotesList(box){
   if (notesPage >= totalPages) notesPage = totalPages - 1;
   if (notesPage < 0) notesPage = 0;
   var pageBlocks = blocks.slice(notesPage * NOTES_PAGE_SIZE, notesPage * NOTES_PAGE_SIZE + NOTES_PAGE_SIZE);
-  var html = toolbar + '<div class="notes-list scroll">';
+  var html = '';
   /* 层次化：章 → 原文行（两行）→ 无引用笔记 → 引用笔记（引用单行截断）；奇数段落浅色背景 */
   var lastKey = null;
   pageBlocks.forEach(function(b, j){
@@ -1908,18 +2191,16 @@ function renderNotesList(box){
     });
     html += '</div>';
   });
-  html += '</div>';
+  box.innerHTML = html;
   if (totalPages > 1){
-    html += '<div class="notes-pager">' +
+    pager.innerHTML = '<div class="notes-pager">' +
       '<button id="npPrev"' + (notesPage <= 0 ? ' disabled' : '') + '>‹ 上一页</button>' +
       '<span class="pg-info" id="npInfo">' + (notesPage + 1) + ' / ' + totalPages + '</span>' +
       '<button id="npNext"' + (notesPage >= totalPages - 1 ? ' disabled' : '') + '>下一页 ›</button></div>';
-  }
-  box.innerHTML = html;
-  $('#btnExportNotes').addEventListener('click', exportNotes);
-  if (totalPages > 1){
-    $('#npPrev').addEventListener('click', function(){ if (notesPage > 0){ notesPage--; renderNotesList(box); } });
-    $('#npNext').addEventListener('click', function(){ if (notesPage < totalPages - 1){ notesPage++; renderNotesList(box); } });
+    $('#npPrev').addEventListener('click', function(){ if (notesPage > 0){ notesPage--; renderNotesListBody(); } });
+    $('#npNext').addEventListener('click', function(){ if (notesPage < totalPages - 1){ notesPage++; renderNotesListBody(); } });
+  } else {
+    pager.innerHTML = '';
   }
   box.querySelectorAll('.note-whole').forEach(function(el){
     el.addEventListener('click', function(){
@@ -1931,6 +2212,40 @@ function renderNotesList(box){
     });
   });
   box.querySelectorAll('.note-sub').forEach(function(el){
+    el.addEventListener('click', function(){
+      var n = state.notesMap[el.dataset.id];
+      if (!n) return;
+      var ci = noteCi(n);
+      if (ci < 0){ toast('对应章节已不存在'); return; }
+      closePanel();
+      jumpToParagraph(ci, n.pi, '');
+      openParaNotes(ci, n.pi, n.quote);
+    });
+  });
+}
+function renderNotesSearchResults(box, notes){
+  var term = notesSearchTerm.toLowerCase();
+  var matches = [];
+  notes.forEach(function(n){
+    var hay = ((n.text || '') + ' ' + (n.quote || '') + ' ' + (n.excerpt || '')).toLowerCase();
+    if (hay.indexOf(term) !== -1) matches.push(n);
+  });
+  matches.sort(function(a, b){ return (noteCi(a) - noteCi(b)) || (a.pi - b.pi) || (a.createdAt - b.createdAt); });
+  var html = '<div class="notes-result-count">' + matches.length + ' 条匹配</div>';
+  if (!matches.length){
+    box.innerHTML = html + '<div class="empty-hint">没有匹配的笔记</div>';
+    return;
+  }
+  matches.forEach(function(n){
+    var ci = noteCi(n);
+    var chLabel = (ci >= 0 ? '第' + (ci + 1) + '章 · ' : '') + (n.chapterTitle || '未定位');
+    html += '<div class="note-search-item" data-id="' + esc(n.id) + '">' +
+      (n.quote ? '<div class="q">「' + highlightText(n.quote, notesSearchTerm) + '」</div>' : '<div class="q muted">（整段笔记）</div>') +
+      '<div class="t">' + highlightText(n.text, notesSearchTerm) + '</div>' +
+      '<div class="tm">' + esc(chLabel) + ' · ' + fmtTime(n.createdAt) + '</div></div>';
+  });
+  box.innerHTML = html;
+  box.querySelectorAll('.note-search-item').forEach(function(el){
     el.addEventListener('click', function(){
       var n = state.notesMap[el.dataset.id];
       if (!n) return;
@@ -2288,9 +2603,10 @@ function buildAnnotationsPayload(){
     version: 1,
     bookHash: state.book.hash,
     bookTitle: state.book.title,
+    chapterPattern: patternForBook(state.book),
     exportedAt: new Date().toISOString(),
     notes: notes.map(function(n){
-      return { chapterTitle: n.chapterTitle, ci: n.ci, pi: n.pi, quote: n.quote || '', text: n.text, createdAt: n.createdAt };
+      return { chapterTitle: n.chapterTitle, ci: n.ci, pi: n.pi, line: n.line, quote: n.quote || '', text: n.text, createdAt: n.createdAt };
     }),
     entities: state.entities.map(function(e){
       return { term: e.term, type: e.type, color: e.color, style: e.style || 'wavy', createdAt: e.createdAt };
@@ -2309,24 +2625,42 @@ function noteCiForBook(chapters, titleToCi, n){
   return -1;
 }
 async function mergeBookAnnotations(book, notesArr, entitiesArr){
-  var split = splitChapters(book.text, settings.chapterPattern);
+  var split = splitChapters(book.text, patternForBook(book));
   var chapters = split.chapters;
   var titleToCi = {};
-  for (var i = 0; i < chapters.length; i++) titleToCi[chapters[i].title] = i;
+  var lineToCiPi = {};
+  for (var i = 0; i < chapters.length; i++){
+    titleToCi[chapters[i].title] = i;
+    var ch = chapters[i];
+    if (ch.paraLines){
+      for (var p = 0; p < ch.paras.length; p++) lineToCiPi[ch.paraLines[p]] = { ci: i, pi: p };
+    }
+  }
   var ops = [], noteCount = 0, entCount = 0;
   (notesArr || []).forEach(function(n){
-    if (!n || !n.text || typeof n.pi !== 'number') return;
-    var ci = noteCiForBook(chapters, titleToCi, n);
-    if (ci < 0) return; /* 无法定位章节，跳过 */
+    if (!n || !n.text) return;
+    var ci, pi, line;
+    if (typeof n.line === 'number' && n.line >= 0 && lineToCiPi[n.line]){
+      var pos = lineToCiPi[n.line];
+      ci = pos.ci; pi = pos.pi; line = n.line; /* 新版备份：按行号精确定位 */
+    } else {
+      if (typeof n.pi !== 'number') return; /* 旧版备份：需有 pi */
+      ci = noteCiForBook(chapters, titleToCi, n);
+      if (ci < 0) return; /* 无法定位章节，跳过 */
+      if (!chapters[ci].paras || chapters[ci].paras[n.pi] === undefined) return;
+      pi = n.pi;
+      line = chapters[ci].paraLines ? chapters[ci].paraLines[pi] : -1;
+    }
     var quote = normalizeQuote(n.quote); /* 允许空引用（无引用段落笔记） */
     var note = {
-      id: book.hash + ':' + ci + ':' + n.pi + ':' + quote,
+      id: makeNoteId(book.hash, line, quote),
       book: book.hash,
+      line: line,
       chapterTitle: chapters[ci].title,
-      ci: ci, pi: n.pi,
+      ci: ci, pi: pi,
       text: n.text,
       quote: quote,
-      excerpt: (chapters[ci].paras[n.pi] || '').slice(0, 60),
+      excerpt: (chapters[ci].paras[pi] || '').slice(0, 60),
       createdAt: n.createdAt || Date.now()
     };
     ops.push(idbPut('notes', note));
@@ -2366,10 +2700,18 @@ function importAnnotationsData(data){
   if (data.bookHash && data.bookHash !== state.book.hash){
     if (!confirm('导入的数据来自另一本书（内容可能不同），笔记定位/标记词可能对不上，仍要合并吗？')) return;
   }
-  mergeBookAnnotations(state.book, data.notes, data.entities).then(function(counts){
-    return refreshAnnotationsUI().then(function(){
-      toast('已合并：笔记 ' + counts.notes + ' 条 · 标记 ' + counts.ents + ' 个');
-    });
+  var applyPattern = (typeof data.chapterPattern === 'string' && data.chapterPattern.trim()) ? data.chapterPattern.trim() : null;
+  if (applyPattern){
+    try { new RegExp(applyPattern, 'm'); } catch(e){ toast('导入数据的分章正则无效：' + e.message); return; }
+    state.book.chapterPattern = applyPattern;
+  }
+  var persist = applyPattern ? idbPut('books', state.book).catch(function(){}) : Promise.resolve();
+  persist.then(function(){
+    return mergeBookAnnotations(state.book, data.notes, data.entities);
+  }).then(function(counts){
+    var msg = '已合并：笔记 ' + counts.notes + ' 条 · 标记 ' + counts.ents + ' 个' + (applyPattern ? '；已套用备份的分章正则' : '');
+    if (applyPattern) return openBook(state.book.hash).then(function(){ toast(msg); });
+    return refreshAnnotationsUI().then(function(){ toast(msg); });
   }).catch(function(e){ toast('导入失败：' + e.message); });
 }
 async function exportAllAnnotations(){
@@ -2382,7 +2724,8 @@ async function exportAllAnnotations(){
     booksOut.push({
       bookHash: b.hash,
       bookTitle: b.title,
-      notes: notes.map(function(n){ return { chapterTitle: n.chapterTitle, ci: n.ci, pi: n.pi, quote: n.quote || '', text: n.text, createdAt: n.createdAt }; }),
+      chapterPattern: patternForBook(b),
+      notes: notes.map(function(n){ return { chapterTitle: n.chapterTitle, ci: n.ci, pi: n.pi, line: n.line, quote: n.quote || '', text: n.text, createdAt: n.createdAt }; }),
       entities: entities.map(function(e){ return { term: e.term, type: e.type, color: e.color, style: e.style || 'wavy', createdAt: e.createdAt }; })
     });
   }
@@ -2393,17 +2736,25 @@ async function importAllAnnotationsData(data){
   if (!data || data.type !== 'annotations-all' || !Array.isArray(data.books)){
     toast('不是有效的标记/笔记数据'); return;
   }
-  var doneBooks = 0, missing = 0, totalNotes = 0, totalEnts = 0, hitCurrent = false;
+  var doneBooks = 0, missing = 0, totalNotes = 0, totalEnts = 0, hitCurrent = false, currentPatternChanged = false;
   for (var i = 0; i < data.books.length; i++){
     var b = data.books[i];
     if (!b || !b.bookHash) continue;
     var book = await idbGet('books', b.bookHash);
     if (!book){ missing++; continue; }
+    if (typeof b.chapterPattern === 'string' && b.chapterPattern.trim()){
+      book.chapterPattern = b.chapterPattern.trim();
+      await idbPut('books', book).catch(function(){});
+      if (state.book && state.book.hash === book.hash) currentPatternChanged = true;
+    }
     var counts = await mergeBookAnnotations(book, b.notes, b.entities);
     doneBooks++; totalNotes += counts.notes; totalEnts += counts.ents;
     if (state.book && state.book.hash === book.hash) hitCurrent = true;
   }
-  if (hitCurrent) await refreshAnnotationsUI();
+  if (hitCurrent){
+    if (currentPatternChanged) await openBook(state.book.hash);
+    else await refreshAnnotationsUI();
+  }
   var msg = '已合并 ' + doneBooks + ' 本书：笔记 ' + totalNotes + ' 条 · 标记 ' + totalEnts + ' 个';
   if (missing) msg += '；未找到 ' + missing + ' 本书（需先在本地导入对应书籍）';
   toast(msg);
@@ -2430,7 +2781,7 @@ function annoOk(){
   $('#annoErr').textContent = '不是有效的标记/笔记数据';
 }
 
-/* ---------- 字体调整（正文渲染共用的控件，供字体面板与设置面板复用） ---------- */
+/* ---------- 外观面板：主题 + 字体 + 行距（字体控件组） ---------- */
 function fontControlsHTML(){
   var opts = '';
   FONT_FAMILIES.forEach(function(f){
@@ -2467,8 +2818,30 @@ function bindFontControls(root){
   });
 }
 function renderFont(body){
-  body.innerHTML = fontControlsHTML();
+  body.innerHTML =
+    '<div class="set-row"><label>主题</label>' +
+    '<div class="theme-btns">' +
+    '<button data-theme="light" class="' + (settings.theme==='light'?'active':'') + '">浅色</button>' +
+    '<button data-theme="sepia" class="' + (settings.theme==='sepia'?'active':'') + '">羊皮纸</button>' +
+    '<button data-theme="dark" class="' + (settings.theme==='dark'?'active':'') + '">夜间</button>' +
+    '</div></div>' +
+    fontControlsHTML() +
+    '<div class="set-row"><label>行距 <span class="val">' + settings.lineHeight.toFixed(1) + '</span></label>' +
+    '<input type="range" id="fcLh" min="1.4" max="2.4" step="0.1" value="' + settings.lineHeight + '"></div>';
   bindFontControls(body);
+  body.querySelector('#fcLh').addEventListener('input', function(){
+    settings.lineHeight = parseFloat(this.value);
+    body.querySelector('#fcLh').parentElement.querySelector('.val').textContent = settings.lineHeight.toFixed(1);
+    applySettings(); saveSettings();
+  });
+  body.querySelectorAll('.theme-btns button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      settings.theme = btn.dataset.theme;
+      body.querySelectorAll('.theme-btns button').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      applySettings(); saveSettings();
+    });
+  });
 }
 function updateLockSettingsUI(){
   if (state.panel === 'settings') renderSettings($('#panelBody'));
@@ -2492,18 +2865,9 @@ function passwordSettingsHTML(){
 }
 function renderSettings(body){
   body.innerHTML =
-    '<div class="set-row"><label>主题</label>' +
-    '<div class="theme-btns">' +
-    '<button data-theme="light" class="' + (settings.theme==='light'?'active':'') + '">浅色</button>' +
-    '<button data-theme="sepia" class="' + (settings.theme==='sepia'?'active':'') + '">羊皮纸</button>' +
-    '<button data-theme="dark" class="' + (settings.theme==='dark'?'active':'') + '">夜间</button>' +
-    '</div></div>' +
-    fontControlsHTML() +
-    '<div class="set-row"><label>行距 <span class="val">' + settings.lineHeight.toFixed(1) + '</span></label>' +
-    '<input type="range" id="setLh" min="1.4" max="2.4" step="0.1" value="' + settings.lineHeight + '"></div>' +
-    '<div class="set-row"><label>章节正则（^ 开头，换行匹配）</label>' +
-    '<textarea id="setPattern" spellcheck="false">' + esc(settings.chapterPattern) + '</textarea>' +
-    '<div style="margin-top:6px"><button class="btn-plain" id="setPatternApply">应用并重新分章</button></div></div>' +
+    '<div class="set-row"><label>' + (state.book ? '本书分章正则' : '默认分章正则（新导入书籍）') + '（^ 开头，换行匹配）</label>' +
+    '<textarea id="setPattern" spellcheck="false">' + esc(state.book ? patternForBook(state.book) : settings.chapterPattern) + '</textarea>' +
+    '<div style="margin-top:6px"><button class="btn-plain" id="setPatternApply">' + (state.book ? '应用并重新分章' : '保存为默认') + '</button></div></div>' +
     '<div class="set-row"><label>自定义代理模板（{url} 为链接占位）</label>' +
     '<textarea id="setProxy" spellcheck="false">' + esc(settings.proxy) + '</textarea></div>' +
     '<div class="set-row">' +
@@ -2513,6 +2877,10 @@ function renderSettings(body){
     '<div class="set-row">' +
     '<label class="chk-row"><input type="checkbox" id="setShowNoteTime"' + (settings.showNoteTime ? ' checked' : '') + '> 显示笔记日期</label>' +
     '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6">关闭后，笔记列表中的日期时间不再显示。</div>' +
+    '</div>' +
+    '<div class="set-row">' +
+    '<label class="chk-row"><input type="checkbox" id="setShowBookTitle"' + (settings.showBookTitle ? ' checked' : '') + '> 显示书名</label>' +
+    '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6">开启后，书名显示在阅读区顶部。</div>' +
     '</div>' +
     '<div class="set-row"><label>搜索上下文行数 <span class="val">' + settings.searchContextLines + ' 行</span></label>' +
     '<input type="range" id="setSearchCtx" min="1" max="15" step="1" value="' + settings.searchContextLines + '"></div>' +
@@ -2527,29 +2895,21 @@ function renderSettings(body){
     '<button class="btn-plain" id="setAnnoExportAll">复制全部</button>' +
     '<button class="btn-plain" id="setAnnoImport">导入合并</button>' +
     '</div>' +
-    '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6">「复制本书」导出当前书的标记+笔记；「复制全部」导出书库所有书的标记+笔记（含 bookHash，跨设备按内容匹配合并）；导入时按引用/标记词去重。</div>' +
+    '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6">「复制本书」导出当前书的标记+笔记+分章正则；「复制全部」导出书库所有书的标记+笔记+分章正则（含 bookHash，跨设备按内容匹配合并）；导入时按引用/标记词去重，并套用备份里的分章正则。</div>' +
     '</div>' +
     '<div class="set-row" style="text-align:right"><button class="btn-plain" id="setReset">恢复默认设置</button></div>';
-  bindFontControls(body);
-  $('#setLh').addEventListener('input', function(){
-    settings.lineHeight = parseFloat(this.value);
-    $('#setLh').parentElement.querySelector('.val').textContent = settings.lineHeight.toFixed(1);
-    applySettings(); saveSettings();
-  });
-  body.querySelectorAll('.theme-btns button').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      settings.theme = btn.dataset.theme;
-      body.querySelectorAll('.theme-btns button').forEach(function(b){ b.classList.remove('active'); });
-      btn.classList.add('active');
-      applySettings(); saveSettings();
-    });
-  });
   $('#setPatternApply').addEventListener('click', function(){
     var p = $('#setPattern').value.trim() || DEFAULT_CHAPTER_PATTERN;
     try { new RegExp(p, 'm'); } catch(e){ toast('正则无效：' + e.message); return; }
-    settings.chapterPattern = p;
-    saveSettings();
-    if (state.book) openBook(state.book.hash).then(function(){ toast('已按新规则重新分章'); });
+    if (state.book){
+      state.book.chapterPattern = p;
+      idbPut('books', state.book).catch(function(){});
+      openBook(state.book.hash).then(function(){ toast('已按新规则重新分章'); });
+    } else {
+      settings.chapterPattern = p;
+      saveSettings();
+      toast('已保存为默认分章正则');
+    }
   });
   $('#setProxy').addEventListener('change', function(){ settings.proxy = this.value; saveSettings(); });
   $('#setCustomSel').addEventListener('change', function(){
@@ -2559,6 +2919,10 @@ function renderSettings(body){
   });
   $('#setShowNoteTime').addEventListener('change', function(){
     settings.showNoteTime = this.checked;
+    applySettings(); saveSettings();
+  });
+  $('#setShowBookTitle').addEventListener('change', function(){
+    settings.showBookTitle = this.checked;
     applySettings(); saveSettings();
   });
   $('#setSearchCtx').addEventListener('input', function(){
@@ -2630,7 +2994,8 @@ function renderAbout(body){
 /* ---------- 书库 ---------- */
 function showLibrary(){ $('#library').classList.remove('hidden'); $('#btnCloseLibrary').classList.remove('hidden'); renderLibrary(); }
 function hideLibrary(){ $('#library').classList.add('hidden'); }
-var libPage = 0, libBooks = [], libPinned = {};
+var libPage = 0, libBooks = [], libPinned = {}, libNameFilter = '', libTagFilter = '';
+var tagTargetHash = null, tagWorking = []; /* 标签编辑弹窗的临时状态 */
 /* 置顶书架：hreader.pinned 存书 hash 列表 */
 function getPinnedBooks(){
   try { var raw = localStorage.getItem('hreader.pinned'); return raw ? JSON.parse(raw) : []; }
@@ -2647,6 +3012,70 @@ function togglePinBook(hash){
   savePinnedBooks(list);
   renderLibrary();
 }
+/* ---------- 书籍标签 ---------- */
+function openTagEditor(hash){
+  idbGet('books', hash).then(function(book){
+    if (!book){ toast('书籍不存在'); return; }
+    tagTargetHash = hash;
+    tagWorking = (book.tags || []).slice();
+    $('#tagCtx').textContent = '《' + book.title + '》的标签';
+    $('#tagInput').value = '';
+    $('#tagErr').textContent = '';
+    renderTagChips();
+    $('#tagOverlay').classList.remove('hidden');
+    $('#tagModal').classList.remove('hidden');
+    setTimeout(function(){ $('#tagInput').focus(); }, 50);
+  });
+}
+function renderTagChips(){
+  var box = $('#tagChips');
+  if (!tagWorking.length){
+    box.innerHTML = '<div class="empty-hint" style="padding:6px 0;font-size:12px">暂无标签，添加后可在书架按标签过滤</div>';
+    return;
+  }
+  box.innerHTML = tagWorking.map(function(t){
+    return '<span class="tag-chip">#' + esc(t) + '<button data-tag="' + esc(t) + '" title="移除">✕</button></span>';
+  }).join('');
+  box.querySelectorAll('.tag-chip button').forEach(function(btn){
+    btn.addEventListener('click', function(){ removeTagFromWorking(btn.dataset.tag); });
+  });
+}
+function addTagFromInput(){
+  var t = $('#tagInput').value.trim().replace(/^#/, '');
+  if (!t) return;
+  if (t.length > 20){ $('#tagErr').textContent = '标签过长（最多 20 字）'; return; }
+  if (tagWorking.indexOf(t) !== -1){ $('#tagErr').textContent = '标签已存在'; return; }
+  if (tagWorking.length >= 8){ $('#tagErr').textContent = '最多 8 个标签'; return; }
+  tagWorking.push(t);
+  $('#tagInput').value = '';
+  $('#tagErr').textContent = '';
+  renderTagChips();
+}
+function removeTagFromWorking(tag){
+  tagWorking = tagWorking.filter(function(x){ return x !== tag; });
+  $('#tagErr').textContent = '';
+  renderTagChips();
+}
+function closeTagEditor(){
+  $('#tagOverlay').classList.add('hidden');
+  $('#tagModal').classList.add('hidden');
+  tagTargetHash = null;
+  tagWorking = [];
+}
+function tagDone(){
+  if (!tagTargetHash){ closeTagEditor(); return; }
+  idbGet('books', tagTargetHash).then(function(book){
+    if (book){
+      book.tags = tagWorking;
+      return idbPut('books', book);
+    }
+  }).then(function(){
+    if (state.book && state.book.hash === tagTargetHash) state.book.tags = tagWorking.slice();
+    closeTagEditor();
+    renderLibrary();
+    toast('标签已保存');
+  }).catch(function(e){ toast('保存失败：' + e.message); });
+}
 function renderLibrary(){
   var list = $('#bookList');
   libPage = 0;
@@ -2659,14 +3088,30 @@ function renderLibrary(){
       if (pa !== pb) return pa - pb; /* 置顶在前 */
       return (b.addedAt || 0) - (a.addedAt || 0);
     });
-    libBooks = books;
-    if (books.length === 0){
-      list.innerHTML = '<div class="empty-hint">书架还是空的<br>从上方导入第一本小说吧</div>';
-      $('#shelfCount').textContent = '';
+    /* 收集全部标签并填充标签过滤下拉 */
+    var tagSet = {};
+    books.forEach(function(b){ (b.tags || []).forEach(function(t){ tagSet[t] = true; }); });
+    if (libTagFilter && !tagSet[libTagFilter]) libTagFilter = '';
+    var tagOptions = '<option value="">全部标签</option>';
+    Object.keys(tagSet).sort(function(a, b){ return a.localeCompare(b, 'zh'); }).forEach(function(t){
+      tagOptions += '<option value="' + esc(t) + '"' + (libTagFilter === t ? ' selected' : '') + '>' + esc(t) + '</option>';
+    });
+    $('#libTagFilter').innerHTML = tagOptions;
+    /* 名字 + 标签过滤 */
+    var nameQ = (libNameFilter || '').trim().toLowerCase();
+    var filtered = books;
+    if (nameQ) filtered = filtered.filter(function(b){ return (b.title || '').toLowerCase().indexOf(nameQ) !== -1; });
+    if (libTagFilter) filtered = filtered.filter(function(b){ return b.tags && b.tags.indexOf(libTagFilter) !== -1; });
+    libBooks = filtered;
+    var filtering = !!(nameQ || libTagFilter);
+    if (filtered.length === 0){
+      var emptyMsg = books.length === 0 ? '书架还是空的<br>从上方导入第一本小说吧' : '没有匹配的书籍';
+      list.innerHTML = '<div class="empty-hint">' + emptyMsg + '</div>';
+      $('#shelfCount').textContent = (books.length === 0 || !filtering) ? '' : ('筛选 0 / ' + books.length + ' 本');
       $('#pager').classList.add('hidden');
       return;
     }
-    $('#shelfCount').textContent = '共 ' + books.length + ' 本';
+    $('#shelfCount').textContent = filtering ? ('筛选 ' + filtered.length + ' / ' + books.length + ' 本') : ('共 ' + books.length + ' 本');
     $('#pager').classList.remove('hidden');
     renderLibPage();
   });
@@ -2686,12 +3131,16 @@ function renderLibPage(){
   var html = '';
   page.forEach(function(b){
     var isPinned = !!libPinned[b.hash];
+    var tagsHtml = (b.tags && b.tags.length)
+      ? b.tags.map(function(t){ return '<span class="book-tag">#' + esc(t) + '</span>'; }).join('') + ' '
+      : '';
     html += '<div class="book-card' + (isPinned ? ' pinned' : '') + '" data-hash="' + esc(b.hash) + '">' +
             '<div class="book-main">' +
             '<div class="book-title">' + esc(b.title) + '</div>' +
-            '<div class="book-meta"><span class="bm-size"></span> · <span class="bm-ch"></span> · <span class="bm-time"></span></div>' +
+            '<div class="book-meta">' + tagsHtml + '<span class="bm-size"></span> · <span class="bm-ch"></span> · <span class="bm-time"></span></div>' +
             '<div class="book-bar"><i style="width:0"></i></div>' +
             '</div>' +
+            '<button class="book-tag-edit" title="标签">🏷</button>' +
             '<button class="book-pin' + (isPinned ? ' pinned' : '') + '" title="' + (isPinned ? '取消置顶' : '置顶') + '">📌</button>' +
             '<button class="book-del" title="删除">🗑</button></div>';
   });
@@ -2708,12 +3157,16 @@ function renderLibPage(){
         card.querySelector('.bm-time').textContent = '未开始 · ' + fmtTime(b.addedAt);
       }
     });
-    var split = splitChapters(b.text, settings.chapterPattern);
+    var split = splitChapters(b.text, patternForBook(b));
     card.querySelector('.bm-size').textContent = fmtSize(b.size);
     card.querySelector('.bm-ch').textContent = split.chapters.length + ' 章';
     card.querySelector('.book-main').addEventListener('click', function(){
       hideLibrary();
       openBook(b.hash);
+    });
+    card.querySelector('.book-tag-edit').addEventListener('click', function(e){
+      e.stopPropagation();
+      openTagEditor(b.hash);
     });
     card.querySelector('.book-pin').addEventListener('click', function(e){
       e.stopPropagation();
@@ -2731,8 +3184,47 @@ function renderLibPage(){
 
 /* ---------- 笔记编辑（每段多条，按引用去重） ---------- */
 function normalizeQuote(q){ return (q || '').replace(/\s+/g, ' ').trim(); }
+/* 笔记锚点：原文行号（规范化 \n 后该行在整本书中的行号，导入后文本不可变，故稳定） */
+function paraLine(ci, pi){
+  var ch = state.chapters[ci];
+  if (ch && ch.paraLines && typeof ch.paraLines[pi] === 'number') return ch.paraLines[pi];
+  return -1;
+}
+function makeNoteId(hash, line, quote){
+  return hash + ':' + line + ':' + normalizeQuote(quote);
+}
+function noteIdForLine(line, quote){
+  return makeNoteId(state.book.hash, line, quote);
+}
 function noteIdFor(ci, pi, quote){
-  return state.book.hash + ':' + ci + ':' + pi + ':' + normalizeQuote(quote);
+  return noteIdForLine(paraLine(ci, pi), quote);
+}
+/* 载入后按行号回映射出当前分章下的 ci/pi（找不到则该段已成标题/空行，置 -1 走摘录回退） */
+function resolveNoteCiPi(n){
+  if (typeof n.line === 'number' && n.line >= 0){
+    var pos = state.lineToCiPi && state.lineToCiPi[n.line];
+    if (pos){
+      n.ci = pos.ci; n.pi = pos.pi;
+      var ch = state.chapters[pos.ci];
+      if (ch) n.chapterTitle = ch.title;
+      return;
+    }
+  }
+  n.ci = -1; n.pi = -1;
+}
+/* 旧版笔记迁移：ci/pi 定位到当前段落，回填 line 并重写 id（无法定位的保留旧 id 防碰撞） */
+function migrateNote(n){
+  var oldId = n.id;
+  var ci = noteCi(n);
+  var line = -1;
+  if (ci >= 0 && state.chapters[ci].paras && typeof state.chapters[ci].paras[n.pi] !== 'undefined'){
+    line = state.chapters[ci].paraLines ? state.chapters[ci].paraLines[n.pi] : -1;
+  }
+  n.line = line;
+  if (line >= 0) n.id = makeNoteId(state.book.hash, line, n.quote);
+  var ops = [idbPut('notes', n).catch(function(){})];
+  if (n.id !== oldId) ops.push(idbDelete('notes', oldId).catch(function(){}));
+  return Promise.all(ops);
 }
 function noteCi(n){
   if (typeof n.ci === 'number' && n.ci >= 0 && n.ci < state.chapters.length) return n.ci;
@@ -2853,6 +3345,7 @@ function saveActiveNote(){
   var note = {
     id: id,
     book: state.book.hash,
+    line: paraLine(t.ci, t.pi),
     chapterTitle: state.chapters[t.ci].title,
     ci: t.ci,
     pi: t.pi,
@@ -2889,6 +3382,7 @@ function closeNoteEditor(){
 }
 function updateNoteBadge(){
   var badge = $('#noteBadge');
+  if (!badge) return; /* 顶栏已移除，笔记徽章不再显示 */
   var n = state.book ? Object.keys(state.notesMap).length : 0;
   badge.textContent = n;
   badge.style.display = n > 0 ? 'block' : 'none';
@@ -3562,19 +4056,23 @@ function wireReaderEvents(){
     else if (e.key === 'Home'){ e.preventDefault(); jumpToChapter(0, false); }
     else if (e.key === 'End'){ e.preventDefault(); jumpToChapter(state.chapters.length - 1, false); }
   });
-  /* 顶栏 */
-  $('#btnLibrary').addEventListener('click', showLibrary);
+  /* 书库 */
   $('#btnCloseLibrary').addEventListener('click', hideLibrary);
+  /* 书架过滤 */
+  $('#libNameFilter').addEventListener('input', function(){ libNameFilter = this.value; renderLibrary(); });
+  $('#libTagFilter').addEventListener('change', function(){ libTagFilter = this.value; renderLibrary(); });
+  /* 书籍标签编辑弹窗 */
+  $('#tagDone').addEventListener('click', tagDone);
+  $('#tagCancel').addEventListener('click', closeTagEditor);
+  $('#tagOverlay').addEventListener('click', closeTagEditor);
+  $('#tagAdd').addEventListener('click', addTagFromInput);
+  $('#tagInput').addEventListener('keydown', function(e){ if (e.key === 'Enter' && !isImeComposing(e)){ e.preventDefault(); addTagFromInput(); } });
+  $('#tagModal').addEventListener('keydown', function(e){ if (e.key === 'Escape'){ e.preventDefault(); closeTagEditor(); } });
   /* 书架分页 */
   $('#pgPrev').addEventListener('click', function(){ libPage--; renderLibPage(); });
   $('#pgNext').addEventListener('click', function(){ libPage++; renderLibPage(); });
-  $('#btnToc').addEventListener('click', function(){ openPanel('toc'); });
-  $('#btnSearch').addEventListener('click', function(){ openPanel('search'); });
-  $('#btnNotes').addEventListener('click', function(){ openPanel('notes'); });
-  $('#btnFont').addEventListener('click', function(){ openPanel('font'); });
-  $('#btnSettings').addEventListener('click', function(){ openPanel('settings'); });
-  $('#btnAbout').addEventListener('click', function(){ openPanel('about'); });
-  $('#btnAboutFromLib').addEventListener('click', function(){ showLibrary(); openPanel('about'); });
+  initFab();
+  $('#btnAboutFromLib').addEventListener('click', function(){ openPanel('about'); });
   $('#btnClosePanel').addEventListener('click', closePanel);
   $('#drawerOverlay').addEventListener('click', closePanel);
   /* 导入 */
@@ -3839,6 +4337,13 @@ function wireReaderEvents(){
     if (!$('#clipName').value.trim()) $('#clipName').value = extractNameFromText(this.value);
   });
   $('#clipModal').addEventListener('keydown', function(e){ if (e.key === 'Escape'){ e.preventDefault(); hideClipModal(); } });
+  /* 导入预览弹窗（分章确认/调整） */
+  $('#impOk').addEventListener('click', impOk);
+  $('#impCancel').addEventListener('click', hideImpModal);
+  $('#impOverlay').addEventListener('click', hideImpModal);
+  $('#impResplit').addEventListener('click', impResplit);
+  $('#impPattern').addEventListener('keydown', function(e){ if (e.key === 'Enter' && !isImeComposing(e)){ e.preventDefault(); impResplit(); } });
+  $('#impModal').addEventListener('keydown', function(e){ if (e.key === 'Escape'){ e.preventDefault(); hideImpModal(); } });
   /* 文件处理弹窗 */
   $('#btnFileProc').addEventListener('click', openFileProcModal);
   $('#fpStart').addEventListener('click', runFileProc);
@@ -4143,7 +4648,7 @@ async function tryTxtiWithKeyHex(buf, keyHex){
   try {
     var text = await decryptTxtiWithKeyHex(buf, keyHex);
     var parsed = parseTxti(text);
-    await importText(parsed.name, parsed.content);
+    previewImport(parsed.name, parsed.content);
     return true;
   } catch(e){ return false; }
 }
@@ -4153,7 +4658,8 @@ async function tryTxtiWithPassword(buf, password){
     var text = await decryptTxtiWithKeyHex(buf, keyHex);
     rememberTxtiKey(keyHex);
     var parsed = parseTxti(text);
-    await importText(parsed.name, parsed.content);
+    hideTxtiModal();
+    previewImport(parsed.name, parsed.content);
     return true;
   } catch(e){ return false; }
 }
@@ -4194,7 +4700,7 @@ function clipOk(){
   var content = $('#clipContent').value;
   if (!content.trim()){ $('#clipErr').textContent = '正文为空'; return; }
   hideClipModal();
-  importText(name, content);
+  previewImport(name, content);
 }
 function handleFile(file){
   if (/\.txti$/i.test(file.name)){
@@ -4208,7 +4714,7 @@ function handleFile(file){
   readFileAsBuffer(file).then(function(buf){
     var text = decodeText(buf);
     var name = file.name.replace(/\.txt$/i, '');
-    return importText(name, text);
+    previewImport(name, text);
   }).catch(function(e){ toast('读取失败：' + e.message); });
 }
 function bootApp(){
