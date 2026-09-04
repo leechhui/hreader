@@ -2607,16 +2607,26 @@
       var m = window.matchMedia ? window.matchMedia('(display-mode: standalone)') : null;
       return !!((m && m.matches) || navigator.standalone);
     }
+    function isEditableFocused() {
+      var el = document.activeElement;
+      if (!el || !el.matches) return false;
+      return el.matches('input, textarea, [contenteditable=""], [contenteditable="true"], select');
+    }
     /* iOS PWA 键盘兼容：以 visualViewport 为准更新视口高度，并切换键盘态样式 */
-    var viewportBaseHeight = 0;
+    var viewportBaseByOrientation = { portrait: 0, landscape: 0 };
     function syncViewportForKeyboard() {
       var vv = window.visualViewport;
+      var width = vv ? Math.round(vv.width) : window.innerWidth;
       var height = vv ? Math.round(vv.height) : window.innerHeight;
-      if (!viewportBaseHeight || height > viewportBaseHeight) viewportBaseHeight = height;
       var offsetTop = vv ? Math.max(0, Math.round(vv.offsetTop || 0)) : 0;
-      var kb = vv ? Math.max(0, Math.round(viewportBaseHeight - (height + offsetTop))) : 0;
-      var keyboardOpen = IS_IOS && isStandaloneMode() && kb > 120;
-      document.documentElement.style.setProperty('--app-h', height + 'px');
+      var orientation = (height >= width) ? 'portrait' : 'landscape';
+      var base = viewportBaseByOrientation[orientation] || 0;
+      if (!base || height > base) base = height;
+      viewportBaseByOrientation[orientation] = base;
+      var kb = vv ? Math.max(0, Math.round(base - (height + offsetTop))) : 0;
+      var keyboardOpen = IS_IOS && isStandaloneMode() && isEditableFocused() && kb > 90;
+      var appHeight = (keyboardOpen || !vv) ? height : Math.max(window.innerHeight, Math.round(vv.height + offsetTop));
+      document.documentElement.style.setProperty('--app-h', appHeight + 'px');
       document.body.classList.toggle('keyboard-open', keyboardOpen);
     }
     function applySettings() {
@@ -5394,7 +5404,13 @@
       }
       document.addEventListener('focusin', function () { setTimeout(syncViewportForKeyboard, 30); });
       document.addEventListener('focusout', function () { setTimeout(syncViewportForKeyboard, 120); });
-      window.addEventListener('orientationchange', function () { viewportBaseHeight = 0; setTimeout(syncViewportForKeyboard, 120); });
+      window.addEventListener('orientationchange', function () {
+        viewportBaseByOrientation.portrait = 0;
+        viewportBaseByOrientation.landscape = 0;
+        document.body.classList.remove('keyboard-open');
+        setTimeout(syncViewportForKeyboard, 120);
+        setTimeout(syncViewportForKeyboard, 360);
+      });
       /* 离开页面时保存进度 */
       document.addEventListener('visibilitychange', function () {
         if (document.hidden) {
