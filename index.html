@@ -138,8 +138,9 @@ body.show-title #topTitleWrap{ display:block; }
 mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 /* 段落末尾笔记徽章（带圈数字 ①-⑳）：绝对定位在段落右下角留白槽内，脱离文本流，避免引起重排 */
 .para-badge{
-  position:absolute; right:-1.0em; bottom:0.0em;
-  width:1em; height:1em; line-height:1em; text-align:center;
+  position:absolute; right:0.1em; bottom:0.1em;
+  height:1em; line-height:1em; /* 宽度自适应字形，避免固定宽度+text-align:center 导致字形相对盒右偏/溢出 */
+  z-index:35; /* 高于悬浮球(34)，窄屏时不被悬浮球遮挡 */
   color:var(--accent); cursor:pointer; user-select:none; -webkit-user-select:none;
   -webkit-touch-callout:none;
   font-size:1em; font-weight:700;
