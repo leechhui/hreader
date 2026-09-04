@@ -42,16 +42,23 @@ self.addEventListener('fetch', function (event) {
   try { url = new URL(event.request.url); } catch (e) { return; }
   if (url.origin !== self.location.origin) return;   /* 跨域请求放行 */
   if (event.request.method !== 'GET') return;
+  /* 动态代理接口不缓存，避免导入内容陈旧与缓存膨胀 */
+  if (url.pathname === '/proxy') return;
 
   /* 页面导航：网络优先，离线回退缓存（联网时顺带更新缓存） */
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request).then(function (res) {
-        var copy = res.clone();
-        caches.open(CACHE_NAME).then(function (cache) { cache.put(event.request, copy); });
+        if (res && res.ok && res.type === 'basic') {
+          var copy = res.clone();
+          event.waitUntil(
+            caches.open(CACHE_NAME).then(function (cache) { return cache.put(event.request, copy); })
+          );
+        }
         return res;
       }).catch(function () {
-        return caches.match('./index.html');
+        return caches.match(event.request)
+          .then(function (hit) { return hit || caches.match('./index.html') || caches.match('/index.html'); });
       })
     );
     return;
@@ -61,9 +68,11 @@ self.addEventListener('fetch', function (event) {
   event.respondWith(
     caches.match(event.request).then(function (cached) {
       var network = fetch(event.request).then(function (res) {
-        if (res && res.status === 200) {
+        if (res && res.ok && res.type === 'basic') {
           var copy = res.clone();
-          caches.open(CACHE_NAME).then(function (cache) { cache.put(event.request, copy); });
+          event.waitUntil(
+            caches.open(CACHE_NAME).then(function (cache) { return cache.put(event.request, copy); })
+          );
         }
         return res;
       }).catch(function () { return cached; });
