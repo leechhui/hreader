@@ -287,6 +287,66 @@ mark{ background:var(--mark); color:inherit; border-radius:2px; padding:0 1px; }
 }
 #searchBackBtn:hover{ opacity:.9; }
 
+/* 夹页按钮 + 菜单 */
+#pinBtn{
+  position:fixed; right:14px; bottom:calc(120px + env(safe-area-inset-bottom, 0px)); z-index:34;
+  width:46px; height:46px; border-radius:50%;
+  background:var(--bg2); color:var(--fg); border:1px solid var(--line);
+  font-size:18px; box-shadow:0 4px 14px var(--shadow);
+  display:flex; align-items:center; justify-content:center;
+  touch-action:none;
+}
+#pinBtn:active{ opacity:.85; }
+#pinBtn.has-pins{ background:var(--accent); color:#fff; border-color:var(--accent); }
+#pinBtn .pin-count{
+  position:absolute; top:-4px; right:-4px; min-width:17px; height:17px; padding:0 4px;
+  border-radius:9px; background:#c0392b; color:#fff; font-size:10px; font-style:normal;
+  display:flex; align-items:center; justify-content:center; line-height:1;
+  box-shadow:0 1px 4px var(--shadow);
+}
+#pinMenu{
+  position:fixed; z-index:36; width:min(280px, 86vw); padding:8px;
+  background:var(--bg2); border:1px solid var(--line); border-radius:12px;
+  box-shadow:0 8px 24px var(--shadow);
+}
+#pinMenu .pin-head{
+  font-size:13px; font-weight:600; color:var(--fg);
+  display:flex; align-items:center; justify-content:space-between; padding:4px 6px 8px;
+}
+#pinMenu .pin-head .pin-count{ font-size:11px; color:var(--muted); font-weight:400; }
+#pinMenu .pin-add{
+  display:block; width:100%; text-align:left; padding:9px 10px; margin-bottom:6px;
+  border-radius:8px; font-size:13px; color:var(--accent); background:var(--accent-soft);
+}
+#pinMenu .pin-add:hover{ opacity:.85; }
+#pinMenu .pin-add.disabled{ opacity:.45; }
+#pinMenu .pin-list{ max-height:46vh; overflow-y:auto; }
+#pinMenu .pin-empty{ font-size:12px; color:var(--muted); text-align:center; padding:10px 0; }
+#pinMenu .pin-item{
+  position:relative; display:block; width:100%; text-align:left;
+  padding:8px 30px 8px 10px; border-radius:8px; cursor:pointer;
+}
+#pinMenu .pin-item:hover{ background:var(--accent-soft); }
+#pinMenu .pin-item .pin-t{
+  display:block; font-size:12px; color:var(--accent);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#pinMenu .pin-item .pin-s{
+  display:block; font-size:12px; color:var(--fg); margin-top:1px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#pinMenu .pin-del{
+  position:absolute; right:6px; top:50%; transform:translateY(-50%);
+  width:22px; height:22px; border-radius:50%; font-size:12px; color:var(--muted);
+  display:flex; align-items:center; justify-content:center;
+}
+#pinMenu .pin-del:hover{ color:#c0392b; background:var(--bg); }
+#pinMenu .pin-clear{
+  display:block; width:100%; text-align:center; margin-top:6px; padding:8px;
+  border-radius:8px; font-size:12px; color:var(--muted);
+}
+#pinMenu .pin-clear:hover{ color:#c0392b; background:var(--accent-soft); }
+
 /* 笔记列表 */
 .note-item{
   padding:10px 8px; border-radius:8px; border-bottom:1px dashed var(--line);
@@ -515,8 +575,13 @@ body.hide-note-time .tm{ display:none; }
 .lib-sec h2{ font-size:14px; color:var(--muted); margin-bottom:8px; font-weight:600; }
 .lib-version{ margin-top:8px; font-size:11px; color:var(--muted); opacity:.7; }
 .lib-shelf{ flex:1; min-height:0; display:flex; flex-direction:column; margin:6px 0 0; }
-.shelf-head{ flex:none; display:flex; align-items:baseline; justify-content:space-between; margin-bottom:6px; }
+.shelf-head{ flex:none; display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
 .shelf-head h2{ font-size:14px; color:var(--muted); font-weight:600; }
+.shelf-tools{ display:flex; align-items:center; gap:8px; }
+.shelf-tools select{
+  height:30px; padding:0 6px; font-size:12px;
+  border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg);
+}
 .shelf-count{ font-size:12px; color:var(--muted); }
 .shelf-filter{ flex:none; display:flex; gap:6px; margin-bottom:8px; }
 .shelf-filter input{
@@ -759,6 +824,10 @@ body.custom-sel #content, body.custom-sel #content p{
 <button id="fab" title="菜单" aria-label="菜单">☰</button>
 <div id="fabMenu" class="hidden"></div>
 
+<!-- 夹页按钮 + 菜单 -->
+<button id="pinBtn" title="夹页" aria-label="夹页">📌<i class="pin-count hidden" id="pinCount"></i></button>
+<div id="pinMenu" class="hidden"></div>
+
 <!-- 抽屉面板 -->
 <div id="drawerOverlay"></div>
 <aside id="drawer">
@@ -799,7 +868,14 @@ body.custom-sel #content, body.custom-sel #content p{
     <section class="lib-shelf">
       <div class="shelf-head">
         <h2>我的书架</h2>
-        <span class="shelf-count" id="shelfCount"></span>
+        <span class="shelf-tools">
+          <select id="libSort" title="排序方式">
+            <option value="added">按导入时间</option>
+            <option value="title">按书名</option>
+            <option value="recent">按最近阅读</option>
+          </select>
+          <span class="shelf-count" id="shelfCount"></span>
+        </span>
       </div>
       <div class="shelf-filter">
         <input id="libNameFilter" type="text" placeholder="按书名过滤…" spellcheck="false">
@@ -1004,7 +1080,7 @@ body.custom-sel #content, body.custom-sel #content p{
 
 /* ---------- 常量 ---------- */
 var DEFAULT_CHAPTER_PATTERN = '^\\s*第\\s*[一二三四五六七八九十百千0-9]+\\s*[章节卷集]';
-var APP_VERSION = '1.0.1';
+var APP_VERSION = '1.0.0';
 var DB_NAME = 'hreader';
 var DB_VERSION = 2;
 var PROXIES = {
@@ -1539,7 +1615,8 @@ var state = {
   titleToCi: {},
   lineToCiPi: {},      /* 原文行号 -> {ci,pi}（笔记按行号锚定的回映射表） */
   panel: '',
-  _layoutSig: ''
+  _layoutSig: '',
+  pins: []              /* 临时夹页锚点 [{ci,pi,k,title,snippet}]，仅内存，最多 MAX_PINS 个 */
 };
 
 /* ---------- 每本书的分章正则：优先用书自带，回退全局默认 ---------- */
@@ -1698,6 +1775,9 @@ function openBook(hash){
       state.searchPage = 0;
       state.searchJumpOrigin = null;
       $('#searchBackBtn').classList.add('hidden');
+      state.pins = [];
+      closePinMenu();
+      updatePinUI();
       state.pages = buildPages(state.chapters[ci].paras, settings.charsPerPage);
       state.pageIndex = prog && prog.page >= 0 && prog.page < state.pages.length ? prog.page : 0;
       render();
@@ -1759,7 +1839,7 @@ function deleteBook(hash){
 /* ---------- 渲染 ---------- */
 function render(){
   if (!state.book || state.chapterIndex < 0) return;
-  hideSelMenu(); hideCtxMenu();
+  hideSelMenu(); hideCtxMenu(); closePinMenu();
   var ci = state.chapterIndex;
   var ch = state.chapters[ci];
   var page = state.pages[state.pageIndex];
@@ -2084,6 +2164,127 @@ function returnFromSearch(){
   state.searchJumpOrigin = null;
   $('#searchBackBtn').classList.add('hidden');
   jumpToParagraph(o.ci, o.pi, '');
+}
+
+/* ---------- 夹页（临时锚点，最多 MAX_PINS 个，仅内存） ---------- */
+var MAX_PINS = 5;
+function currentPinAnchor(){
+  if (!state.book || state.chapterIndex < 0) return null;
+  var top = state.pages[state.pageIndex] ? state.pages[state.pageIndex].start : 0;
+  return { ci: state.chapterIndex, pi: top };
+}
+function pinKey(a){ return a.ci + ':' + a.pi; }
+function pinLabel(a){
+  var ch = state.chapters[a.ci];
+  var title = (ch && ch.title) ? ch.title : ('第' + (a.ci + 1) + '章');
+  var text = (ch && ch.paras[a.pi]) ? String(ch.paras[a.pi]).replace(/\s+/g, ' ').trim() : '';
+  return { title: title, snippet: text.slice(0, 20) };
+}
+function addPin(){
+  if (!state.book || state.chapterIndex < 0) return;
+  var a = currentPinAnchor();
+  if (!a) return;
+  var k = pinKey(a), i, dup = false;
+  for (i = 0; i < state.pins.length; i++){ if (state.pins[i].k === k){ dup = true; break; } }
+  if (dup){ toast('这一页已经夹住了'); return; }
+  if (state.pins.length >= MAX_PINS){ toast('最多夹住 ' + MAX_PINS + ' 页，请先松开一个'); return; }
+  var lb = pinLabel(a);
+  state.pins.push({ ci: a.ci, pi: a.pi, k: k, title: lb.title, snippet: lb.snippet });
+  updatePinUI();
+  closePinMenu();
+  toast('已夹住（' + state.pins.length + '/' + MAX_PINS + '）');
+}
+function removePinByKey(k){
+  state.pins = state.pins.filter(function(p){ return p.k !== k; });
+  updatePinUI();
+}
+function clearPins(){
+  state.pins = [];
+  updatePinUI();
+}
+function jumpToPin(p){
+  if (!state.book) return;
+  if (p.ci < 0 || p.ci >= state.chapters.length){
+    removePinByKey(p.k); toast('该夹页对应的章节已失效');
+    return;
+  }
+  closePinMenu();
+  jumpToParagraph(p.ci, p.pi, '');
+}
+function updatePinUI(){
+  var btn = $('#pinBtn'), badge = $('#pinCount');
+  if (!btn) return;
+  var n = state.pins.length;
+  btn.classList.toggle('has-pins', n > 0);
+  if (badge){
+    badge.textContent = n;
+    badge.classList.toggle('hidden', n === 0);
+  }
+}
+function renderPinMenu(){
+  var menu = $('#pinMenu'), n = state.pins.length, i;
+  var html = '<div class="pin-head">夹页<span class="pin-count">' + n + ' / ' + MAX_PINS + '</span></div>';
+  html += '<button id="pinAddBtn" class="pin-add' + (n >= MAX_PINS ? ' disabled' : '') + '">📌 夹住当前页</button>';
+  html += '<div class="pin-list">';
+  if (!n) html += '<div class="pin-empty">还没有夹页，点上方按钮夹住当前页</div>';
+  for (i = 0; i < n; i++){
+    var p = state.pins[i];
+    html += '<div class="pin-item" data-k="' + esc(p.k) + '">' +
+      '<span class="pin-t">' + esc(p.title) + '</span>' +
+      '<span class="pin-s">' + esc(p.snippet || '（无内容）') + '</span>' +
+      '<button class="pin-del" title="松开">✕</button></div>';
+  }
+  html += '</div>';
+  if (n) html += '<button id="pinClearBtn" class="pin-clear">全部松开</button>';
+  menu.innerHTML = html;
+  var addBtn = $('#pinAddBtn');
+  if (addBtn) addBtn.addEventListener('click', addPin);
+  menu.querySelectorAll('.pin-item').forEach(function(it){
+    var k = it.getAttribute('data-k');
+    it.addEventListener('click', function(e){
+      if (e.target && e.target.closest && e.target.closest('.pin-del')) return;
+      var j, found = null;
+      for (j = 0; j < state.pins.length; j++){ if (state.pins[j].k === k){ found = state.pins[j]; break; } }
+      if (found) jumpToPin(found);
+    });
+    it.querySelector('.pin-del').addEventListener('click', function(e){
+      e.stopPropagation();
+      removePinByKey(k);
+      renderPinMenu();
+    });
+  });
+  var clearBtn = $('#pinClearBtn');
+  if (clearBtn) clearBtn.addEventListener('click', function(){ clearPins(); renderPinMenu(); });
+}
+function positionPinMenu(){
+  var menu = $('#pinMenu'), btn = $('#pinBtn');
+  var br = btn.getBoundingClientRect();
+  var mw = menu.offsetWidth, mh = menu.offsetHeight;
+  var x = Math.min(Math.max(8, br.right - mw), window.innerWidth - mw - 8);
+  var y = br.top - mh - 8;
+  if (y < 8) y = br.bottom + 8;
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+}
+function openPinMenu(){
+  renderPinMenu();
+  $('#pinMenu').classList.remove('hidden');
+  positionPinMenu();
+}
+function closePinMenu(){ $('#pinMenu').classList.add('hidden'); }
+function togglePinMenu(){
+  if ($('#pinMenu').classList.contains('hidden')) openPinMenu();
+  else closePinMenu();
+}
+function initPins(){
+  $('#pinBtn').addEventListener('click', togglePinMenu);
+  document.addEventListener('click', function(e){
+    var menu = $('#pinMenu');
+    if (menu.classList.contains('hidden')) return;
+    if (menu.contains(e.target) || $('#pinBtn').contains(e.target)) return;
+    closePinMenu();
+  });
+  updatePinUI();
 }
 var notesTab = 'notes'; /* 笔记面板当前页签：notes | ents */
 var notesPage = 0;      /* 笔记列表当前页 */
@@ -3013,10 +3214,22 @@ function renderAbout(body){
 }
 
 /* ---------- 书库 ---------- */
-function showLibrary(){ $('#library').classList.remove('hidden'); $('#btnCloseLibrary').classList.remove('hidden'); renderLibrary(); }
+function showLibrary(){ $('#library').classList.remove('hidden'); $('#btnCloseLibrary').classList.remove('hidden'); $('#libSort').value = libSort; renderLibrary(); }
 function hideLibrary(){ $('#library').classList.add('hidden'); }
-var libPage = 0, libBooks = [], libPinned = {}, libNameFilter = '', libTagFilter = '';
+var libPage = 0, libBooks = [], libPinned = {}, libNameFilter = '', libTagFilter = '', libSort = getLibSort(), libProg = {};
 var tagTargetHash = null, tagWorking = []; /* 标签编辑弹窗的临时状态 */
+/* 书架排序：hreader.libSort 持久化（added 导入时间 / title 书名 / recent 最近阅读） */
+function getLibSort(){
+  try {
+    var v = localStorage.getItem('hreader.libSort');
+    return (v === 'title' || v === 'recent') ? v : 'added';
+  } catch(e){ return 'added'; }
+}
+function setLibSort(v){
+  libSort = (v === 'title' || v === 'recent') ? v : 'added';
+  try { localStorage.setItem('hreader.libSort', libSort); } catch(e){}
+  renderLibrary();
+}
 /* 置顶书架：hreader.pinned 存书 hash 列表 */
 function getPinnedBooks(){
   try { var raw = localStorage.getItem('hreader.pinned'); return raw ? JSON.parse(raw) : []; }
@@ -3097,18 +3310,35 @@ function tagDone(){
     toast('标签已保存');
   }).catch(function(e){ toast('保存失败：' + e.message); });
 }
+/* 书架排序比较器：置顶优先，其余按当前排序方式（书名/导入时间/最近阅读） */
+function libCompare(a, b){
+  var pa = libPinned[a.hash] ? 0 : 1, pb = libPinned[b.hash] ? 0 : 1;
+  if (pa !== pb) return pa - pb; /* 置顶在前 */
+  if (libSort === 'title'){
+    var c = (a.title || '').localeCompare(b.title || '', 'zh');
+    if (c) return c;
+    return (b.addedAt || 0) - (a.addedAt || 0);
+  }
+  if (libSort === 'recent'){
+    var ra = (libProg[a.hash] && libProg[a.hash].updatedAt) || 0;
+    var rb = (libProg[b.hash] && libProg[b.hash].updatedAt) || 0;
+    if (ra !== rb) return rb - ra; /* 最近阅读在前，未读的排后 */
+    return (b.addedAt || 0) - (a.addedAt || 0);
+  }
+  return (b.addedAt || 0) - (a.addedAt || 0); /* 导入时间，新在前 */
+}
 function renderLibrary(){
   var list = $('#bookList');
   libPage = 0;
-  return idbGetAll('books').then(function(books){
+  return Promise.all([idbGetAll('books'), idbGetAll('progress')]).then(function(res){
+    var books = res[0] || [];
+    var progs = res[1] || [];
+    libProg = {};
+    progs.forEach(function(p){ if (p && p.book) libProg[p.book] = p; });
     var pinned = getPinnedBooks();
     libPinned = {};
     pinned.forEach(function(h){ libPinned[h] = true; });
-    books.sort(function(a, b){
-      var pa = libPinned[a.hash] ? 0 : 1, pb = libPinned[b.hash] ? 0 : 1;
-      if (pa !== pb) return pa - pb; /* 置顶在前 */
-      return (b.addedAt || 0) - (a.addedAt || 0);
-    });
+    books.sort(libCompare);
     /* 收集全部标签并填充标签过滤下拉 */
     var tagSet = {};
     books.forEach(function(b){ (b.tags || []).forEach(function(t){ tagSet[t] = true; }); });
@@ -3170,14 +3400,13 @@ function renderLibPage(){
   page.forEach(function(b, i){
     var card = cards[i];
     if (!card) return;
-    idbGet('progress', b.hash).then(function(prog){
-      if (prog){
-        card.querySelector('.bm-time').textContent = '读至 ' + (prog.percent || 0) + '% · ' + fmtTime(prog.updatedAt || b.addedAt);
-        card.querySelector('.book-bar i').style.width = (prog.percent || 0) + '%';
-      } else {
-        card.querySelector('.bm-time').textContent = '未开始 · ' + fmtTime(b.addedAt);
-      }
-    });
+    var prog = libProg[b.hash];
+    if (prog){
+      card.querySelector('.bm-time').textContent = '读至 ' + (prog.percent || 0) + '% · ' + fmtTime(prog.updatedAt || b.addedAt);
+      card.querySelector('.book-bar i').style.width = (prog.percent || 0) + '%';
+    } else {
+      card.querySelector('.bm-time').textContent = '未开始 · ' + fmtTime(b.addedAt);
+    }
     var split = splitChapters(b.text, patternForBook(b));
     card.querySelector('.bm-size').textContent = fmtSize(b.size);
     card.querySelector('.bm-ch').textContent = split.chapters.length + ' 章';
@@ -4082,6 +4311,7 @@ function wireReaderEvents(){
     var k = (e.key || '').toLowerCase();
     if (e.key === 'Escape'){
       if (e.defaultPrevented) return; /* 弹窗自身已处理 Esc（关闭弹窗） */
+      if (!$('#pinMenu').classList.contains('hidden')){ closePinMenu(); return; }
       if (isOverlayOpen()){
         closePanel(); closeNoteEditor(); closeEntEditor(); hideSelMenu(); hideCtxMenu();
         closeSearchPreview(); closeTagEditor(); hideTxtiModal(); hideAnnoModal(); hideClipModal(); hideImpModal(); hideFileProcModal();
@@ -4112,6 +4342,7 @@ function wireReaderEvents(){
   /* 书架过滤 */
   $('#libNameFilter').addEventListener('input', function(){ libNameFilter = this.value; renderLibrary(); });
   $('#libTagFilter').addEventListener('change', function(){ libTagFilter = this.value; renderLibrary(); });
+  $('#libSort').addEventListener('change', function(){ setLibSort(this.value); });
   /* 书籍标签编辑弹窗 */
   $('#tagDone').addEventListener('click', tagDone);
   $('#tagCancel').addEventListener('click', closeTagEditor);
@@ -4123,6 +4354,7 @@ function wireReaderEvents(){
   $('#pgPrev').addEventListener('click', function(){ libPage--; renderLibPage(); });
   $('#pgNext').addEventListener('click', function(){ libPage++; renderLibPage(); });
   initFab();
+  initPins();
   $('#btnAboutFromLib').addEventListener('click', function(){ openPanel('about'); });
   $('#btnClosePanel').addEventListener('click', closePanel);
   $('#drawerOverlay').addEventListener('click', closePanel);
